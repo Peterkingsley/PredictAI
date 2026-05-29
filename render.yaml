@@ -1,0 +1,92 @@
+databases:
+  - name: predictai-db
+    databaseName: predictai
+    user: predictai
+    plan: starter
+
+services:
+  - type: web
+    name: predictai-api
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn api.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        value: TrypredictAI_bot
+      - key: DATABASE_URL
+        fromDatabase:
+          name: predictai-db
+          property: connectionString
+      - key: REDIS_URL
+        sync: false
+      - key: POLYMARKET_PRIVATE_KEY
+        sync: false
+      - key: POLYMARKET_HOST
+        value: https://clob.polymarket.com
+      - key: POLYGON_CHAIN_ID
+        value: "137"
+      - key: POLYGON_RPC_URL
+        sync: false
+      - key: WALLETCONNECT_PROJECT_ID
+        sync: false
+      - key: MINI_APP_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: worker
+    name: predictai-bot
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m bot.main
+    envVars:
+      - key: ENVIRONMENT
+        value: production
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: BOT_USERNAME
+        value: TrypredictAI_bot
+      - key: DATABASE_URL
+        fromDatabase:
+          name: predictai-db
+          property: connectionString
+      - key: REDIS_URL
+        sync: false
+      - key: POLYMARKET_PRIVATE_KEY
+        sync: false
+      - key: POLYMARKET_HOST
+        value: https://clob.polymarket.com
+      - key: POLYGON_RPC_URL
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+
+  - type: worker
+    name: predictai-worker
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A workers.celery_app worker --loglevel=info
+    envVars:
+      - key: REDIS_URL
+        sync: false
+      - key: POLYMARKET_PRIVATE_KEY
+        sync: false
+      - key: POLYMARKET_HOST
+        value: https://clob.polymarket.com
+
+  - type: worker
+    name: predictai-beat
+    env: python
+    plan: starter
+    buildCommand: pip install -r requirements.txt
+    startCommand: celery -A workers.celery_app beat --loglevel=info
+    envVars:
+      - key: REDIS_URL
+        sync: false

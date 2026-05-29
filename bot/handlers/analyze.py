@@ -1,0 +1,42 @@
+from telegram import Update
+from telegram.ext import ContextTypes
+
+from api.services.ai_analysis import AIAnalysisService
+from api.services.polymarket import PolymarketService
+
+market_service = PolymarketService()
+ai_service = AIAnalysisService()
+
+
+async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    target = " ".join(context.args) if context.args else ""
+    if not target:
+        await update.effective_message.reply_text("Usage: /analyze [market id or keyword]")
+        return
+
+    market = await market_service.get_market(target)
+    if not market:
+        results = await market_service.search_markets(target, limit=1)
+        market = results[0] if results else None
+
+    if not market:
+        await update.effective_message.reply_text(f'No market found for "{target}".')
+        return
+
+    report = await ai_service.analyze_market(market)
+    text = (
+        "AI intelligence report\n"
+        "----------------------\n"
+        f"{report['question']}\n\n"
+        f"Probability: {report['probability']:.0f}%\n"
+        f"{report['analysis']}"
+    )
+
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text)
+    else:
+        await update.effective_message.reply_text(text)
+
+
+async def quick_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await analyze_command(update, context)

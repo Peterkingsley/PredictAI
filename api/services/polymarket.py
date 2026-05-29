@@ -1,0 +1,166 @@
+from __future__ import annotations
+
+import asyncio
+import logging
+from dataclasses import dataclass
+from datetime import datetime, timezone
+from typing import Any
+
+import httpx
+
+from api.config import get_settings
+
+logger = logging.getLogger(__name__)
+
+
+class PolymarketServiceError(Exception):
+    pass
+
+
+@dataclass(frozen=True)
+class Market:
+    id: str
+    question: str
+    category: str
+    probability: float
+    yes_price: float
+    no_price: float
+    volume: float
+    end_date: str | None
+    active: bool
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "id": self.id,
+            "question": self.question,
+            "category": self.category,
+            "probability": round(self.probability, 2),
+            "yes_price": round(self.yes_price, 4),
+            "no_price": round(self.no_price, 4),
+            "volume": round(self.volume, 2),
+            "end_date": self.end_date,
+            "active": self.active,
+        }
+
+
+class PolymarketService:
+    def __init__(self) -> None:
+        self.settings = get_settings()
+        self._client: Any | None = None
+
+    async def get_top_markets(self, limit: int = 10) -> list[dict[str, Any]]:
+        markets = await self._load_markets()
+        return [market.as_dict() for market in sorted(markets, key=lambda item: item.volume, reverse=True)[:limit]]
+
+    async def get_new_markets(self, limit: int = 10) -> list[dict[str, Any]]:
+        markets = await self._load_markets()
+        return [market.as_dict() for market in markets[:limit]]
+
+    async def get_markets_by_category(self, category: str, limit: int = 10) -> list[dict[str, Any]]:
+        normalized = category.lower()
+        markets = await self._load_markets()
+        filtered = [market for market in markets if market.category.lower() == normalized]
+        return [market.as_dict() for market in sorted(filtered, key=lambda item: item.volume, reverse=True)[:limit]]
+
+    async def search_markets(self, keyword: str, limit: int = 10) -> list[dict[str, Any]]:
+        needle = keyword.lower()
+        markets = await self._load_markets()
+        filtered = [market for market in markets if needle in market.question.lower()]
+        return [market.as_dict() for market in sorted(filtered, key=lambda item: item.volume, reverse=True)[:limit]]
+
+    async def get_market(self, market_id: str) -> dict[str, Any] | None:
+        markets = await self._load_markets()
+        for market in markets:
+            if market.id == market_id:
+                return market.as_dict()
+        return None
+
+    async def _load_markets(self) -> list[Market]:
+        try:
+            return await asyncio.to_thread(self._load_markets_with_clob)
+        except Exception as exc:
+            logger.warning("py-clob-client market load failed, falling back to public HTTP: %s", exc)
+            return await self._load_markets_with_http()
+
+    def _load_markets_with_clob(self) -> list[Market]:
+        from py_clob_client.client import ClobClient
+
+        if self._client is None:
+            self._client = ClobClient(
+                host=self.settings.polymarket_host,
+                key=self.settings.polymarket_private_key or None,
+                chain_id=self.settings.polygon_chain_id,
+            )
+        raw = self._client.get_markets()
+        return self._normalize_markets(raw)
+
+    async def _load_markets_with_http(self) -> list[Market]:
+        url = f"{self.settings.polymarket_host.rstrip('/')}/markets"
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.get(url)
+            response.raise_for_status()
+            return self._normalize_markets(response.json())
+
+    def _normalize_markets(self, raw: Any) -> list[Market]:
+        if isinstance(raw, dict):
+            candidates = raw.get("data") or raw.get("markets") or []
+        else:
+            candidates = raw or []
+
+        markets: list[Market] = []
+        for item in candidates:
+            try:
+                market = self._normalize_market(item)
+            except (TypeError, ValueError, KeyError):
+                continue
+            if market.active and market.question:
+                markets.append(market)
+
+        if not markets:
+            raise PolymarketServiceError("No active Polymarket markets returned")
+        return markets
+
+    def _normalize_market(self, item: dict[str, Any]) -> Market:
+        tokens = item.get("tokens") or item.get("outcomes") or []
+        yes_price = self._extract_price(tokens, "yes")
+        no_price = self._extract_price(tokens, "no")
+        if yes_price <= 0 and no_price > 0:
+            yes_price = 1 - no_price
+        if no_price <= 0 and yes_price > 0:
+            no_price = 1 - yes_price
+
+        volume = float(item.get("volume") or item.get("volumeNum") or item.get("liquidity") or 0)
+        market_id = str(item.get("condition_id") or item.get("conditionId") or item.get("id") or item.get("market_slug"))
+        category = str(item.get("category") or item.get("tags", ["general"])[0] or "general")
+        end_date = item.get("end_date_iso") or item.get("endDate") or item.get("end_date")
+        active = bool(item.get("active", True)) and not self._is_expired(end_date)
+
+        return Market(
+            id=market_id,
+            question=str(item.get("question") or item.get("title") or ""),
+            category=category.lower(),
+            probability=yes_price * 100,
+            yes_price=yes_price,
+            no_price=no_price,
+            volume=volume,
+            end_date=end_date,
+            active=active,
+        )
+
+    def _extract_price(self, tokens: Any, outcome: str) -> float:
+        if not isinstance(tokens, list):
+            return 0
+        for token in tokens:
+            token_outcome = str(token.get("outcome") or token.get("name") or "").lower()
+            if token_outcome == outcome:
+                return float(token.get("price") or token.get("last_price") or token.get("lastPrice") or 0)
+        return 0
+
+    def _is_expired(self, end_date: Any) -> bool:
+        if not end_date:
+            return False
+        try:
+            parsed = datetime.fromisoformat(str(end_date).replace("Z", "+00:00"))
+        except ValueError:
+            return False
+        return parsed < datetime.now(timezone.utc)
