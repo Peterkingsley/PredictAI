@@ -5,8 +5,9 @@ databases:
     plan: starter
 
 services:
-  - type: static_site
+  - type: web
     name: predictai-mini-app
+    runtime: static
     rootDir: mini-app
     buildCommand: npm install && npm run build
     staticPublishPath: dist
