@@ -5,6 +5,7 @@ import "./styles.css";
 import { AppKitProvider, apiBaseUrl, requiredNetwork, walletConnectProjectId } from "./walletConfig.jsx";
 
 const SAMPLE_ADDRESS = "0x3f4a9168b22c70c946e12e5fb81c8ad9b91c";
+const TRUST_WALLET_POLYGON_COIN_ID = 966;
 
 function isAddress(value) {
   return /^0x[a-fA-F0-9]{40}$/.test(value || "");
@@ -46,6 +47,7 @@ function isTelegramWebApp() {
 function ExternalBrowserFallback() {
   const [copyStatus, setCopyStatus] = useState("");
   const currentUrl = window.location.href;
+  const trustWalletUrl = `https://link.trustwallet.com/open_url?coin_id=${TRUST_WALLET_POLYGON_COIN_ID}&url=${encodeURIComponent(currentUrl)}`;
 
   function openExternally() {
     if (window.Telegram?.WebApp?.openLink) {
@@ -64,6 +66,10 @@ function ExternalBrowserFallback() {
     }
   }
 
+  function openTrustWallet() {
+    window.location.href = trustWalletUrl;
+  }
+
   if (!isTelegramWebApp()) {
     return null;
   }
@@ -75,6 +81,9 @@ function ExternalBrowserFallback() {
       </p>
       <button className="secondary" onClick={openExternally}>
         Open in browser
+      </button>
+      <button className="primary" onClick={openTrustWallet}>
+        Open in Trust Wallet
       </button>
       <button className="secondary" onClick={copyCurrentUrl}>
         Copy page link
