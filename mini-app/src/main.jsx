@@ -39,6 +39,54 @@ function formatPayloadValue(value) {
   return String(value);
 }
 
+function isTelegramWebApp() {
+  return Boolean(window.Telegram?.WebApp);
+}
+
+function ExternalBrowserFallback() {
+  const [copyStatus, setCopyStatus] = useState("");
+  const currentUrl = window.location.href;
+
+  function openExternally() {
+    if (window.Telegram?.WebApp?.openLink) {
+      window.Telegram.WebApp.openLink(currentUrl, { try_instant_view: false });
+      return;
+    }
+    window.open(currentUrl, "_blank", "noopener,noreferrer");
+  }
+
+  async function copyCurrentUrl() {
+    try {
+      await navigator.clipboard.writeText(currentUrl);
+      setCopyStatus("Link copied.");
+    } catch {
+      setCopyStatus("Copy blocked. Long-press the link below instead.");
+    }
+  }
+
+  if (!isTelegramWebApp()) {
+    return null;
+  }
+
+  return (
+    <div className="fallback-panel">
+      <p className="status">
+        If your wallet app will not open from Telegram, open this page in your browser first.
+      </p>
+      <button className="secondary" onClick={openExternally}>
+        Open in browser
+      </button>
+      <button className="secondary" onClick={copyCurrentUrl}>
+        Copy page link
+      </button>
+      <a className="fallback-link" href={currentUrl} target="_blank" rel="noreferrer">
+        {currentUrl}
+      </a>
+      {copyStatus ? <p className="status">{copyStatus}</p> : null}
+    </div>
+  );
+}
+
 function WalletConnectControls({ onWalletDetected, onWalletState }) {
   const { open } = useAppKit();
   const { disconnect } = useDisconnect();
@@ -91,6 +139,8 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
           Disconnect
         </button>
       ) : null}
+
+      {!isConnected ? <ExternalBrowserFallback /> : null}
     </div>
   );
 }
