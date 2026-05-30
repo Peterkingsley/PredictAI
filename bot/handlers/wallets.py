@@ -1,11 +1,11 @@
 import json
 
-from telegram import Update
+from telegram import ReplyKeyboardRemove, Update
 from telegram.ext import ContextTypes
 
 from api.config import get_settings
 from api.services.wallets import get_usdc_balance, is_evm_address, short_address
-from bot.keyboards import connect_wallet_keyboard
+from bot.keyboards import connect_wallet_keyboard, connect_wallet_reply_keyboard
 from db.crud import add_wallet, disconnect_wallets, list_wallets
 from db.models import SessionLocal
 
@@ -19,8 +19,8 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     await update.effective_message.reply_text(
-        "Connect your wallet\nTap below to open the wallet connect screen.",
-        reply_markup=connect_wallet_keyboard(),
+        "Connect your wallet\nTap the keyboard button below to open the wallet connect screen.",
+        reply_markup=connect_wallet_reply_keyboard(),
     )
 
 
@@ -84,5 +84,6 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
     balance = await get_usdc_balance(wallet.address)
     balance_text = f"\n\nUSDC balance: {balance:.2f}" if balance is not None else ""
     await update.effective_message.reply_text(
-        f"Wallet connected\n{short_address(wallet.address)}{balance_text}\n\nTry /markets or /wallets."
+        f"Wallet connected\n{short_address(wallet.address)}{balance_text}\n\nTry /markets or /wallets.",
+        reply_markup=ReplyKeyboardRemove(),
     )

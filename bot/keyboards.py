@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
 
 from api.config import get_settings
 
@@ -23,6 +23,15 @@ def connect_wallet_keyboard() -> InlineKeyboardMarkup:
         return InlineKeyboardMarkup([[InlineKeyboardButton("Mini App not configured", callback_data="help")]])
     return InlineKeyboardMarkup(
         [[InlineKeyboardButton("Open wallet connect", web_app=WebAppInfo(settings.mini_app_url))]]
+    )
+
+
+def connect_wallet_reply_keyboard() -> ReplyKeyboardMarkup:
+    settings = get_settings()
+    return ReplyKeyboardMarkup(
+        [[KeyboardButton("Open wallet connect", web_app=WebAppInfo(settings.mini_app_url))]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
     )
 
 
