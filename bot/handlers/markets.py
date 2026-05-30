@@ -53,6 +53,7 @@ async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if not market:
         await update.effective_message.reply_text("Market not found.")
         return
+    context.user_data["selected_market"] = market
     await update.effective_message.reply_text(format_market_detail(market), reply_markup=market_actions_keyboard(market["id"]))
 
 
@@ -60,10 +61,14 @@ async def market_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     query = update.callback_query
     await query.answer()
     action, market_id = query.data.split(":", 1)
-    market = await service.get_market(market_id)
+    if market_id == "selected":
+        market = context.user_data.get("selected_market")
+    else:
+        market = await service.get_market(market_id)
     if not market:
         await query.edit_message_text("Market not found.")
         return
+    context.user_data["selected_market"] = market
     if action == "market":
         await query.edit_message_text(format_market_detail(market), reply_markup=market_actions_keyboard(market_id))
     elif action == "analyze":
@@ -72,4 +77,6 @@ async def market_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
         await analyze_command(update, context)
     elif action == "bet":
-        await query.edit_message_text("Wallet trading is not enabled yet. Phase 1 supports live browsing and analysis.")
+        from bot.handlers.trade import start_bet_flow
+
+        await start_bet_flow(update, context, market)

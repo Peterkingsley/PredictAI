@@ -24,4 +24,9 @@ async def generic_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if query.data == "help":
         await query.edit_message_text(HELP_TEXT)
         return
+    if query.data == "connect":
+        from bot.handlers.wallets import connect_command
+
+        await connect_command(update, context)
+        return
     await query.edit_message_text("This flow is coming next. Try /markets or /analyze for the live demo.")

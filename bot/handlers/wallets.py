@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 
 from api.config import get_settings
 from api.services.wallets import get_usdc_balance, is_evm_address, short_address
-from bot.keyboards import connect_wallet_keyboard, connect_wallet_reply_keyboard
+from bot.keyboards import connect_wallet_reply_keyboard
 from db.crud import add_wallet, disconnect_wallets, list_wallets
 from db.models import SessionLocal
 
@@ -31,7 +31,7 @@ async def wallets_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not wallets:
         await update.effective_message.reply_text(
             "No wallets connected yet.\n\nUse /connect to add one.",
-            reply_markup=connect_wallet_keyboard(),
+            reply_markup=connect_wallet_reply_keyboard(),
         )
         return
 

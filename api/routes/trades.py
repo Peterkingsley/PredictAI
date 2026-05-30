@@ -3,6 +3,9 @@ from typing import Literal
 from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
+from db.crud import list_open_positions
+from db.models import SessionLocal
+
 router = APIRouter()
 
 
@@ -25,4 +28,22 @@ async def build_order(request: BuildOrderRequest):
 
 @router.get("/positions/{telegram_id}")
 async def positions(telegram_id: int):
-    return {"telegram_id": telegram_id, "positions": []}
+    async with SessionLocal() as session:
+        open_positions = await list_open_positions(session, telegram_id)
+    return {
+        "telegram_id": telegram_id,
+        "positions": [
+            {
+                "id": position.id,
+                "market_id": position.market_id,
+                "market_question": position.market_question,
+                "side": position.side,
+                "amount_usdc": float(position.amount_usdc),
+                "shares": float(position.shares),
+                "entry_price": float(position.entry_price),
+                "current_price": float(position.current_price or position.entry_price),
+                "status": position.status,
+            }
+            for position in open_positions
+        ],
+    }

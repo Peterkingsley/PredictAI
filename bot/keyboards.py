@@ -7,7 +7,7 @@ def start_keyboard() -> InlineKeyboardMarkup:
     settings = get_settings()
     buttons = []
     if settings.mini_app_url:
-        buttons.append([InlineKeyboardButton("Connect wallet", web_app=WebAppInfo(settings.mini_app_url))])
+        buttons.append([InlineKeyboardButton("Connect wallet", callback_data="connect")])
     buttons.append(
         [
             InlineKeyboardButton("Markets", callback_data="markets"),
@@ -39,9 +39,44 @@ def market_actions_keyboard(market_id: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Analyze", callback_data=f"analyze:{market_id}"),
-                InlineKeyboardButton("Bet", callback_data=f"bet:{market_id}"),
+                InlineKeyboardButton("Analyze", callback_data="analyze:selected"),
+                InlineKeyboardButton("Bet", callback_data="bet:selected"),
             ],
-            [InlineKeyboardButton("View market", callback_data=f"market:{market_id}")],
+            [InlineKeyboardButton("View market", callback_data="market:selected")],
+        ]
+    )
+
+
+def bet_side_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Yes", callback_data="bet_side:YES"),
+                InlineKeyboardButton("No", callback_data="bet_side:NO"),
+            ],
+            [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],
+        ]
+    )
+
+
+def bet_amount_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("$5", callback_data="bet_amount:5"),
+                InlineKeyboardButton("$10", callback_data="bet_amount:10"),
+                InlineKeyboardButton("$25", callback_data="bet_amount:25"),
+                InlineKeyboardButton("$50", callback_data="bet_amount:50"),
+            ],
+            [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],
+        ]
+    )
+
+
+def bet_confirm_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Confirm demo bet", callback_data="bet_confirm")],
+            [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],
         ]
     )
