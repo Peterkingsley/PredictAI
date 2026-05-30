@@ -1,10 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from "@reown/appkit/react";
 import "./styles.css";
 import { AppKitProvider, apiBaseUrl, requiredNetwork, walletConnectProjectId } from "./walletConfig.jsx";
 
-const SAMPLE_ADDRESS = "0x3f4a9168b22c70c946e12e5fb81c8ad9b91c";
 const TRUST_WALLET_POLYGON_COIN_ID = 966;
 
 function isAddress(value) {
@@ -158,7 +157,7 @@ function WalletConnectPanel({ onWalletDetected, onWalletState }) {
   if (!walletConnectProjectId) {
     return (
       <div className="notice">
-        Add <code>VITE_WALLETCONNECT_PROJECT_ID</code> to enable WalletConnect. Manual address mode is still available.
+        Add <code>VITE_WALLETCONNECT_PROJECT_ID</code> to enable Reown WalletConnect.
       </div>
     );
   }
@@ -251,7 +250,6 @@ function SigningIntentCard({ intentId, intent, loadState, loadError, walletState
 }
 
 function App() {
-  const [address, setAddress] = useState("");
   const [status, setStatus] = useState("Ready");
   const [intentId] = useState(getIntentId);
   const [intent, setIntent] = useState(null);
@@ -263,10 +261,8 @@ function App() {
     isConnected: false,
     isPolygon: false,
   });
-  const canSubmit = useMemo(() => isAddress(address), [address]);
   const handleWalletDetected = useCallback((wallet) => {
-    setAddress(wallet);
-    setStatus("WalletConnect account ready. Send it back to Telegram.");
+    setStatus(`WalletConnect account ready: ${shortAddress(wallet)}.`);
   }, []);
   const handleWalletState = useCallback((nextWalletState) => {
     setWalletState(nextWalletState);
@@ -312,33 +308,19 @@ function App() {
     return () => controller.abort();
   }, [intentId]);
 
-  async function connectInjectedWallet() {
-    if (!window.ethereum?.request) {
-      setStatus("No injected wallet found. Paste your wallet address instead.");
+  function sendWallet() {
+    if (!walletState.isConnected || !isAddress(walletState.address)) {
+      setStatus("Connect with WalletConnect first.");
       return;
     }
-
-    try {
-      const accounts = await window.ethereum.request({ method: "eth_requestAccounts" });
-      const [wallet] = accounts || [];
-      if (wallet) {
-        setAddress(wallet);
-        setStatus("Wallet detected. Send it back to Telegram.");
-      }
-    } catch {
-      setStatus("Wallet request was cancelled.");
-    }
-  }
-
-  function sendWallet() {
-    if (!canSubmit) {
-      setStatus("Enter a valid EVM address.");
+    if (!walletState.isPolygon) {
+      setStatus("Switch to Polygon before sending your wallet.");
       return;
     }
 
     const payload = JSON.stringify({
       type: "wallet_connected",
-      address,
+      address: walletState.address,
     });
 
     if (window.Telegram?.WebApp?.sendData) {
@@ -370,29 +352,11 @@ function App() {
 
         <WalletConnectPanel onWalletDetected={handleWalletDetected} onWalletState={handleWalletState} />
 
-        <button className="primary" onClick={connectInjectedWallet}>
-          Use injected wallet
-        </button>
-
-        <label>
-          Wallet address
-          <input
-            value={address}
-            onChange={(event) => setAddress(event.target.value.trim())}
-            placeholder={SAMPLE_ADDRESS}
-            spellCheck="false"
-          />
-        </label>
-
-        <button className="secondary" onClick={() => setAddress(SAMPLE_ADDRESS)}>
-          Use demo address
-        </button>
-
-        <button className="primary" disabled={!canSubmit} onClick={sendWallet}>
+        <button className="primary" disabled={!walletState.isConnected || !walletState.isPolygon} onClick={sendWallet}>
           Send to Telegram
         </button>
 
-        <p className={canSubmit ? "status good" : "status"}>{status}</p>
+        <p className={walletState.isConnected && walletState.isPolygon ? "status good" : "status"}>{status}</p>
       </section>
     </main>
   );
