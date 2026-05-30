@@ -18,6 +18,7 @@ class Settings(BaseSettings):
     polygon_rpc_url: str = ""
     walletconnect_project_id: str = ""
     mini_app_url: str = ""
+    cors_origins: str = ""
     gemini_api_key: str = ""
     environment: str = "development"
     min_bet_usdc: float = 1.0
