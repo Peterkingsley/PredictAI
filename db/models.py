@@ -51,6 +51,34 @@ class Position(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
+class Alert(Base):
+    __tablename__ = "alerts"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    market_id: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    market_question: Mapped[str] = mapped_column(Text, nullable=False)
+    threshold: Mapped[float] = mapped_column(Numeric(5, 2), nullable=False)
+    direction: Mapped[str] = mapped_column(String(8), default="ABOVE")
+    triggered: Mapped[bool] = mapped_column(Boolean, default=False, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    triggered_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class SigningIntent(Base):
+    __tablename__ = "signing_intents"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    wallet_address: Mapped[str] = mapped_column(Text, nullable=False)
+    intent_type: Mapped[str] = mapped_column(String(16), nullable=False)
+    payload: Mapped[dict] = mapped_column(JSON, default=dict)
+    status: Mapped[str] = mapped_column(String(24), default="PENDING")
+    signature: Mapped[str | None] = mapped_column(Text)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
 def _async_database_url() -> str:
     url = get_settings().database_url
     if url.startswith("postgresql://"):

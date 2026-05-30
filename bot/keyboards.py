@@ -92,3 +92,17 @@ def position_actions_keyboard(position_id: int) -> InlineKeyboardMarkup:
             [InlineKeyboardButton("Share", callback_data=f"position_share:{position_id}")],
         ]
     )
+
+
+def alert_threshold_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("50%", callback_data="alert_threshold:50"),
+                InlineKeyboardButton("60%", callback_data="alert_threshold:60"),
+                InlineKeyboardButton("70%", callback_data="alert_threshold:70"),
+                InlineKeyboardButton("80%", callback_data="alert_threshold:80"),
+            ],
+            [InlineKeyboardButton("Cancel", callback_data="alert_cancel")],
+        ]
+    )

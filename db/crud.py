@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Position, User, Wallet
+from db.models import Alert, Position, SigningIntent, User, Wallet
 
 
 async def get_or_create_user(session: AsyncSession, telegram_id: int, username: str | None = None) -> User:
@@ -155,3 +155,91 @@ async def close_demo_position(session: AsyncSession, telegram_id: int, position_
     await session.commit()
     await session.refresh(position)
     return position
+
+
+async def create_alert(
+    session: AsyncSession,
+    telegram_id: int,
+    username: str | None,
+    market_id: str,
+    market_question: str,
+    threshold: float,
+    direction: str = "ABOVE",
+) -> Alert:
+    user = await get_or_create_user(session, telegram_id=telegram_id, username=username)
+    alert = Alert(
+        user_id=user.id,
+        market_id=market_id,
+        market_question=market_question,
+        threshold=threshold,
+        direction=direction,
+    )
+    session.add(alert)
+    await session.commit()
+    await session.refresh(alert)
+    return alert
+
+
+async def list_alerts(session: AsyncSession, telegram_id: int, include_triggered: bool = False) -> list[Alert]:
+    result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        return []
+    query = select(Alert).where(Alert.user_id == user.id)
+    if not include_triggered:
+        query = query.where(Alert.triggered == False)
+    result = await session.execute(query.order_by(Alert.created_at.desc()))
+    return list(result.scalars().all())
+
+
+async def list_untriggered_alerts(session: AsyncSession) -> list[tuple[Alert, int]]:
+    result = await session.execute(
+        select(Alert, User.telegram_id).join(User, Alert.user_id == User.id).where(Alert.triggered == False)
+    )
+    return [(row[0], row[1]) for row in result.all()]
+
+
+async def mark_alert_triggered(session: AsyncSession, alert_id: int) -> None:
+    result = await session.execute(select(Alert).where(Alert.id == alert_id))
+    alert = result.scalar_one_or_none()
+    if not alert:
+        return
+    alert.triggered = True
+    alert.triggered_at = datetime.utcnow()
+    await session.commit()
+
+
+async def create_signing_intent(
+    session: AsyncSession,
+    telegram_id: int,
+    wallet_address: str,
+    intent_type: str,
+    payload: dict,
+) -> SigningIntent:
+    intent = SigningIntent(
+        telegram_id=telegram_id,
+        wallet_address=wallet_address.lower(),
+        intent_type=intent_type,
+        payload=payload,
+    )
+    session.add(intent)
+    await session.commit()
+    await session.refresh(intent)
+    return intent
+
+
+async def get_signing_intent(session: AsyncSession, intent_id: int) -> SigningIntent | None:
+    result = await session.execute(select(SigningIntent).where(SigningIntent.id == intent_id))
+    return result.scalar_one_or_none()
+
+
+async def complete_signing_intent(session: AsyncSession, intent_id: int, signature: str) -> SigningIntent | None:
+    intent = await get_signing_intent(session, intent_id)
+    if not intent:
+        return None
+    intent.status = "SIGNED"
+    intent.signature = signature
+    intent.completed_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(intent)
+    return intent

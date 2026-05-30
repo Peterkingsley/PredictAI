@@ -3,7 +3,7 @@ import logging
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from api.config import get_settings
-from bot.handlers import analyze, markets, onboarding, portfolio, trade, wallets
+from bot.handlers import alerts, analyze, markets, onboarding, portfolio, trade, wallets
 from db.models import init_db
 
 logging.basicConfig(
@@ -30,6 +30,7 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("market", markets.market_command))
     app.add_handler(CommandHandler("analyze", analyze.analyze_command))
     app.add_handler(CommandHandler("quick", analyze.quick_command))
+    app.add_handler(CommandHandler("alerts", alerts.alerts_command))
     app.add_handler(CommandHandler("portfolio", portfolio.portfolio_command))
     app.add_handler(CommandHandler("history", portfolio.history_command))
     app.add_handler(CommandHandler("pnl", portfolio.pnl_command))
@@ -40,6 +41,7 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("disconnect", wallets.disconnect_command))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, wallets.handle_web_app_data))
     app.add_handler(CallbackQueryHandler(markets.market_callback, pattern=r"^(market|analyze|bet):"))
+    app.add_handler(CallbackQueryHandler(alerts.alert_callback, pattern=r"^alert_(threshold|cancel)"))
     app.add_handler(CallbackQueryHandler(trade.trade_callback, pattern=r"^bet_(side|amount|confirm|cancel)"))
     app.add_handler(CallbackQueryHandler(portfolio.portfolio_callback, pattern=r"^position_(detail|sell|share):"))
     app.add_handler(CallbackQueryHandler(onboarding.generic_callback))

@@ -21,5 +21,9 @@ celery_app.conf.beat_schedule = {
         "task": "workers.tasks.reset_weekly_leaderboard",
         "schedule": crontab(hour=0, minute=0, day_of_week="monday"),
     },
+    "check-price-alerts": {
+        "task": "workers.tasks.check_price_alerts",
+        "schedule": 60.0,
+    },
 }
 celery_app.conf.timezone = "UTC"
