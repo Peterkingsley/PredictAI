@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -114,3 +116,42 @@ async def list_open_positions(session: AsyncSession, telegram_id: int) -> list[P
         select(Position).where(Position.user_id == user.id, Position.status == "OPEN").order_by(Position.opened_at.desc())
     )
     return list(result.scalars().all())
+
+
+async def list_positions(session: AsyncSession, telegram_id: int, limit: int = 10) -> list[Position]:
+    result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        return []
+    result = await session.execute(
+        select(Position).where(Position.user_id == user.id).order_by(Position.opened_at.desc()).limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def get_position(session: AsyncSession, telegram_id: int, position_id: int) -> Position | None:
+    result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        return None
+    result = await session.execute(select(Position).where(Position.user_id == user.id, Position.id == position_id))
+    return result.scalar_one_or_none()
+
+
+async def close_demo_position(session: AsyncSession, telegram_id: int, position_id: int) -> Position | None:
+    position = await get_position(session, telegram_id, position_id)
+    if not position or position.status != "OPEN":
+        return position
+
+    entry = float(position.entry_price)
+    if position.side == "YES":
+        simulated_exit = min(entry + 0.03, 0.99)
+    else:
+        simulated_exit = min(entry + 0.02, 0.99)
+
+    position.current_price = simulated_exit
+    position.status = "CLOSED"
+    position.closed_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(position)
+    return position

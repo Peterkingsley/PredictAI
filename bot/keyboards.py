@@ -80,3 +80,15 @@ def bet_confirm_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],
         ]
     )
+
+
+def position_actions_keyboard(position_id: int) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Details", callback_data=f"position_detail:{position_id}"),
+                InlineKeyboardButton("Sell demo", callback_data=f"position_sell:{position_id}"),
+            ],
+            [InlineKeyboardButton("Share", callback_data=f"position_share:{position_id}")],
+        ]
+    )
