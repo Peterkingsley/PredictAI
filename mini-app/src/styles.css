@@ -69,6 +69,85 @@ h1 {
   line-height: 1.45;
 }
 
+.wallet-connect,
+.notice,
+.signing-card {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbf9;
+}
+
+.signing-card {
+  background: #ffffff;
+}
+
+.warning {
+  border-color: #e5b85d;
+  background: #fff9eb;
+}
+
+.wallet-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.label {
+  margin: 0 0 3px;
+  color: var(--ink);
+  font-weight: 800;
+}
+
+code {
+  font-size: 0.88em;
+}
+
+.details-grid {
+  display: grid;
+  grid-template-columns: minmax(72px, 0.45fr) 1fr;
+  gap: 8px 12px;
+  align-items: baseline;
+}
+
+.details-grid span,
+.payload-row span {
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 760;
+}
+
+.details-grid strong {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.payload-preview {
+  display: grid;
+  gap: 8px;
+}
+
+.payload-row {
+  display: grid;
+  gap: 4px;
+}
+
+pre {
+  max-height: 120px;
+  margin: 0;
+  overflow: auto;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px;
+  background: #fbfdfc;
+  font: 0.82rem ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
+}
+
 label {
   display: grid;
   gap: 7px;
@@ -95,6 +174,10 @@ button:disabled {
   opacity: 0.45;
 }
 
+.small {
+  min-width: 92px;
+}
+
 .primary {
   background: var(--accent);
   color: white;
@@ -112,4 +195,8 @@ button:disabled {
 
 .status.good {
   color: var(--accent);
+}
+
+.warning-text {
+  color: #9a6700;
 }

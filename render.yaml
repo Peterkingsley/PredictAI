@@ -11,6 +11,11 @@ services:
     rootDir: mini-app
     buildCommand: npm install && npm run build
     staticPublishPath: dist
+    envVars:
+      - key: VITE_WALLETCONNECT_PROJECT_ID
+        sync: false
+      - key: VITE_API_BASE_URL
+        sync: false
 
   - type: web
     name: predictai-api
@@ -44,6 +49,8 @@ services:
       - key: WALLETCONNECT_PROJECT_ID
         sync: false
       - key: MINI_APP_URL
+        sync: false
+      - key: CORS_ORIGINS
         sync: false
       - key: GEMINI_API_KEY
         sync: false
