@@ -23,17 +23,21 @@ HELP_TEXT = (
     "/analyze [market id or keyword] - AI report\n"
     "/quick [market id or keyword] - quick read\n\n"
     "Portfolio\n"
-    "/portfolio - position tracker placeholder"
+    "/portfolio - position tracker placeholder\n\n"
+    "Account\n"
+    "/connect - connect wallet\n"
+    "/wallets - list wallets\n"
+    "/disconnect - remove wallets"
 )
 
 
 def format_market_list(title: str, markets: list[dict[str, Any]]) -> str:
-    lines = [f"{title} · live Polymarket data", ""]
+    lines = [f"{title} - live Polymarket data", ""]
     for index, market in enumerate(markets[:10], start=1):
         lines.extend(
             [
                 f"{index}. {market['question']}",
-                f"{market['category']} · {market['probability']:.0f}% Yes · ${market['volume']:,.0f} vol",
+                f"{market['category']} - {market['probability']:.0f}% Yes - ${market['volume']:,.0f} vol",
                 f"ID: {market['id']}",
                 "",
             ]

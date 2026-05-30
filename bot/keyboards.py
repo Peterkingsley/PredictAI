@@ -17,6 +17,15 @@ def start_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(buttons)
 
 
+def connect_wallet_keyboard() -> InlineKeyboardMarkup:
+    settings = get_settings()
+    if not settings.mini_app_url:
+        return InlineKeyboardMarkup([[InlineKeyboardButton("Mini App not configured", callback_data="help")]])
+    return InlineKeyboardMarkup(
+        [[InlineKeyboardButton("Open wallet connect", web_app=WebAppInfo(settings.mini_app_url))]]
+    )
+
+
 def market_actions_keyboard(market_id: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
