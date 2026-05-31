@@ -148,7 +148,15 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
         </button>
       ) : null}
 
-      {!isConnected ? <ExternalBrowserFallback /> : null}
+      {!isConnected ? (
+        <>
+          <p className="status">
+            WalletConnect pairing requires access to <code>relay.walletconnect.org</code>. If the modal stays blank,
+            try another network or disable browser filters.
+          </p>
+          <ExternalBrowserFallback />
+        </>
+      ) : null}
     </div>
   );
 }

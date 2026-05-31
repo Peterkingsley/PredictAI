@@ -7,6 +7,7 @@ import { WagmiProvider } from "wagmi";
 
 export const walletConnectProjectId = import.meta.env.VITE_WALLETCONNECT_PROJECT_ID || "";
 export const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$/, "");
+export const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, "");
 export const requiredNetwork = polygon;
 
 const networks = [polygon];
@@ -14,8 +15,8 @@ const queryClient = new QueryClient();
 const metadata = {
   name: "PredictAI",
   description: "Telegram-native Polymarket assistant",
-  url: window.location.origin,
-  icons: [`${window.location.origin}/vite.svg`],
+  url: appUrl,
+  icons: [`${appUrl}/vite.svg`],
 };
 
 let wagmiAdapter = null;
