@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any
@@ -139,11 +140,12 @@ class PolymarketService:
         market_id = str(item.get("condition_id") or item.get("conditionId") or item.get("id") or item.get("market_slug"))
         category = str(item.get("category") or item.get("tags", ["general"])[0] or "general")
         end_date = item.get("end_date_iso") or item.get("endDate") or item.get("end_date")
-        active = bool(item.get("active", True)) and not self._is_expired(end_date)
+        question = str(item.get("question") or item.get("title") or "")
+        active = self._is_tradeable_market(item, question, end_date, yes_price, no_price, yes_token_id, no_token_id)
 
         return Market(
             id=market_id,
-            question=str(item.get("question") or item.get("title") or ""),
+            question=question,
             category=category.lower(),
             probability=yes_price * 100,
             yes_price=yes_price,
@@ -182,3 +184,42 @@ class PolymarketService:
         except ValueError:
             return False
         return parsed < datetime.now(timezone.utc)
+
+    def _is_tradeable_market(
+        self,
+        item: dict[str, Any],
+        question: str,
+        end_date: Any,
+        yes_price: float,
+        no_price: float,
+        yes_token_id: str | None,
+        no_token_id: str | None,
+    ) -> bool:
+        if not bool(item.get("active", True)):
+            return False
+        if self._truthy(item.get("closed")) or self._truthy(item.get("archived")):
+            return False
+        if item.get("accepting_orders") is False or item.get("acceptingOrders") is False:
+            return False
+        if item.get("enable_order_book") is False or item.get("enableOrderBook") is False:
+            return False
+        if self._is_expired(end_date) or self._question_has_past_date(question):
+            return False
+        if not yes_token_id or not no_token_id:
+            return False
+        return 0 < yes_price < 1 and 0 < no_price < 1
+
+    def _question_has_past_date(self, question: str) -> bool:
+        match = re.search(r"\((\d{4}-\d{2}-\d{2})\)", question)
+        if not match:
+            return False
+        try:
+            parsed = datetime.fromisoformat(match.group(1)).replace(tzinfo=timezone.utc)
+        except ValueError:
+            return False
+        return parsed.date() < datetime.now(timezone.utc).date()
+
+    def _truthy(self, value: Any) -> bool:
+        if isinstance(value, str):
+            return value.lower() in {"1", "true", "yes"}
+        return bool(value)
