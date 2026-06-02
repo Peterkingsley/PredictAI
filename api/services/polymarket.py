@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
 from dataclasses import dataclass
@@ -82,6 +83,10 @@ class PolymarketService:
 
     async def _load_markets(self) -> list[Market]:
         try:
+            return await self._load_markets_with_gamma()
+        except Exception as exc:
+            logger.warning("Gamma market load failed, falling back to CLOB: %s", exc)
+        try:
             return await asyncio.to_thread(self._load_markets_with_clob)
         except Exception as exc:
             logger.warning("py-clob-client market load failed, falling back to public HTTP: %s", exc)
@@ -106,6 +111,21 @@ class PolymarketService:
             response.raise_for_status()
             return self._normalize_markets(response.json())
 
+    async def _load_markets_with_gamma(self) -> list[Market]:
+        url = "https://gamma-api.polymarket.com/markets"
+        params = {
+            "active": "true",
+            "closed": "false",
+            "archived": "false",
+            "limit": 200,
+            "order": "volume24hr",
+            "ascending": "false",
+        }
+        async with httpx.AsyncClient(timeout=20) as client:
+            response = await client.get(url, params=params)
+            response.raise_for_status()
+            return self._normalize_markets(response.json())
+
     def _normalize_markets(self, raw: Any) -> list[Market]:
         if isinstance(raw, dict):
             candidates = raw.get("data") or raw.get("markets") or []
@@ -126,7 +146,7 @@ class PolymarketService:
         return markets
 
     def _normalize_market(self, item: dict[str, Any]) -> Market:
-        tokens = item.get("tokens") or item.get("outcomes") or []
+        tokens = self._extract_tokens(item)
         yes_price = self._extract_price(tokens, "yes")
         no_price = self._extract_price(tokens, "no")
         yes_token_id = self._extract_token_id(tokens, "yes")
@@ -136,10 +156,10 @@ class PolymarketService:
         if no_price <= 0 and yes_price > 0:
             no_price = 1 - yes_price
 
-        volume = float(item.get("volume") or item.get("volumeNum") or item.get("liquidity") or 0)
-        market_id = str(item.get("condition_id") or item.get("conditionId") or item.get("id") or item.get("market_slug"))
-        category = str(item.get("category") or item.get("tags", ["general"])[0] or "general")
-        end_date = item.get("end_date_iso") or item.get("endDate") or item.get("end_date")
+        volume = float(item.get("volume") or item.get("volumeNum") or item.get("liquidity") or item.get("liquidityNum") or 0)
+        market_id = str(item.get("condition_id") or item.get("conditionId") or item.get("id") or item.get("market_slug") or item.get("slug"))
+        category = self._extract_category(item)
+        end_date = item.get("end_date_iso") or item.get("endDate") or item.get("end_date") or item.get("endDateIso")
         question = str(item.get("question") or item.get("title") or "")
         active = self._is_tradeable_market(item, question, end_date, yes_price, no_price, yes_token_id, no_token_id)
 
@@ -175,6 +195,48 @@ class PolymarketService:
                 token_id = token.get("token_id") or token.get("tokenId") or token.get("id")
                 return str(token_id) if token_id else None
         return None
+
+    def _extract_tokens(self, item: dict[str, Any]) -> list[dict[str, Any]]:
+        tokens = item.get("tokens")
+        if isinstance(tokens, list):
+            return tokens
+
+        outcomes = self._parse_json_list(item.get("outcomes"))
+        prices = self._parse_json_list(item.get("outcomePrices"))
+        token_ids = self._parse_json_list(item.get("clobTokenIds"))
+        if outcomes and prices and token_ids:
+            return [
+                {
+                    "outcome": outcome,
+                    "price": prices[index] if index < len(prices) else 0,
+                    "token_id": token_ids[index] if index < len(token_ids) else None,
+                }
+                for index, outcome in enumerate(outcomes)
+            ]
+        return item.get("outcomes") if isinstance(item.get("outcomes"), list) else []
+
+    def _parse_json_list(self, value: Any) -> list[Any]:
+        if isinstance(value, list):
+            return value
+        if not value:
+            return []
+        try:
+            parsed = json.loads(str(value))
+        except (TypeError, ValueError):
+            return []
+        return parsed if isinstance(parsed, list) else []
+
+    def _extract_category(self, item: dict[str, Any]) -> str:
+        category = item.get("category")
+        if category:
+            return str(category).lower()
+        tags = item.get("tags") or []
+        if isinstance(tags, list) and tags:
+            first_tag = tags[0]
+            if isinstance(first_tag, dict):
+                return str(first_tag.get("label") or first_tag.get("slug") or "general").lower()
+            return str(first_tag or "general").lower()
+        return "general"
 
     def _is_expired(self, end_date: Any) -> bool:
         if not end_date:
