@@ -1,11 +1,11 @@
 import json
+from urllib.parse import urlencode
 
-from telegram import ReplyKeyboardRemove, Update
+from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
 from telegram.ext import ContextTypes
 
 from api.config import get_settings
 from api.services.wallets import get_usdc_balance, is_evm_address, short_address
-from bot.keyboards import connect_wallet_reply_keyboard
 from db.crud import add_wallet, disconnect_wallets, list_wallets
 from db.models import SessionLocal
 
@@ -20,7 +20,7 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     await update.effective_message.reply_text(
         "Connect your wallet\nTap the keyboard button below to open the wallet connect screen.",
-        reply_markup=connect_wallet_reply_keyboard(),
+        reply_markup=_connect_wallet_keyboard_for_user(update.effective_user.id),
     )
 
 
@@ -31,7 +31,7 @@ async def wallets_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     if not wallets:
         await update.effective_message.reply_text(
             "No wallets connected yet.\n\nUse /connect to add one.",
-            reply_markup=connect_wallet_reply_keyboard(),
+            reply_markup=_connect_wallet_keyboard_for_user(update.effective_user.id),
         )
         return
 
@@ -88,4 +88,15 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
     await update.effective_message.reply_text(
         f"Wallet connected\n{short_address(wallet.address)}{proof_text}{balance_text}\n\nTry /markets or /wallets.",
         reply_markup=ReplyKeyboardRemove(),
+    )
+
+
+def _connect_wallet_keyboard_for_user(telegram_id: int) -> ReplyKeyboardMarkup:
+    settings = get_settings()
+    separator = "&" if "?" in settings.mini_app_url else "?"
+    connect_url = f"{settings.mini_app_url}{separator}{urlencode({'telegram_id': telegram_id})}"
+    return ReplyKeyboardMarkup(
+        [[KeyboardButton("Open wallet connect", web_app=WebAppInfo(connect_url))]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
     )

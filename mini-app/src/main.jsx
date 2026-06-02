@@ -27,6 +27,10 @@ function getIntentId() {
   return new URLSearchParams(window.location.search).get("intent_id") || "";
 }
 
+function getTelegramId() {
+  return new URLSearchParams(window.location.search).get("telegram_id") || "";
+}
+
 function buildApiUrl(path) {
   return `${apiBaseUrl}${path}`;
 }
@@ -405,6 +409,7 @@ function ConnectionProofButton({ walletState, proof, onProofReady }) {
 function App() {
   const [status, setStatus] = useState("Ready");
   const [intentId] = useState(getIntentId);
+  const [telegramId] = useState(getTelegramId);
   const [intent, setIntent] = useState(null);
   const [intentLoadState, setIntentLoadState] = useState(intentId ? "loading" : "idle");
   const [intentLoadError, setIntentLoadError] = useState("");
@@ -493,7 +498,44 @@ function App() {
       return;
     }
 
-    setStatus("Telegram bridge is unavailable. Open this page from the bot's /connect button.");
+    sendWalletViaApi();
+  }
+
+  async function sendWalletViaApi() {
+    if (!apiBaseUrl) {
+      setStatus("API URL is missing. Open this page from the bot's /connect button.");
+      return;
+    }
+    if (!telegramId) {
+      setStatus("Telegram account is missing. Reopen this page from the bot's /connect button.");
+      return;
+    }
+
+    setStatus("Sending wallet to Telegram...");
+    try {
+      const response = await fetch(buildApiUrl("/wallet/connect"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          telegram_id: Number(telegramId),
+          address: walletState.address,
+          connection_message: connectionProof.message,
+          connection_signature: connectionProof.signature,
+        }),
+      });
+      if (!response.ok) {
+        throw new Error(`Wallet connect failed (${response.status})`);
+      }
+      const data = await response.json();
+      if (data.status !== "connected") {
+        throw new Error(data.message || "Wallet connect was rejected.");
+      }
+      setStatus("Wallet sent to Telegram. Return to the bot.");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+    } catch (error) {
+      setStatus(error.message || "Unable to send wallet to Telegram.");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
+    }
   }
 
   return (
