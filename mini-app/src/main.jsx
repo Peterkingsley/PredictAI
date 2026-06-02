@@ -263,6 +263,9 @@ function SignatureButton({ intent, canPrepareSignature, onSigned }) {
       }
       setSignState("signed");
       onSigned({ ...intent, status: data.status || "SIGNED" });
+      if (data.telegram_notified) {
+        setSignError("");
+      }
       window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
     } catch (error) {
       setSignError(error.message || "Unable to sign this request.");
@@ -274,7 +277,9 @@ function SignatureButton({ intent, canPrepareSignature, onSigned }) {
   return (
     <>
       {signError ? <p className="status warning-text">{signError}</p> : null}
-      {signState === "signed" || intent.status === "SIGNED" ? <p className="status good">Signature submitted.</p> : null}
+      {signState === "signed" || intent.status === "SIGNED" ? (
+        <p className="status good">Signature submitted. Return to Telegram for the next update.</p>
+      ) : null}
 
       <button className="primary" disabled={!canPrepareSignature || signState === "signing" || signState === "submitting"} onClick={signIntent}>
         {signState === "signing" ? "Opening wallet..." : signState === "submitting" ? "Submitting..." : "Sign request"}

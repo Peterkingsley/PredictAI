@@ -95,7 +95,8 @@ async def complete_intent(intent_id: int, request: CompleteSigningIntentRequest)
         intent = await complete_signing_intent(session, intent_id, request.signature)
     if not intent:
         return {"status": "not_found"}
-    return {"id": intent.id, "status": intent.status}
+    await _notify_telegram_signature_received(intent.telegram_id, intent)
+    return {"id": intent.id, "status": intent.status, "telegram_notified": bool(get_settings().telegram_bot_token)}
 
 
 @router.post("/webhooks/transaction-finalized")
@@ -179,6 +180,30 @@ async def _notify_telegram_transaction(telegram_id: int, intent_id: int, request
 
     if request.explorer_url:
         text = f"{text}\n{request.explorer_url}"
+
+    api_url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
+    async with httpx.AsyncClient(timeout=10) as client:
+        await client.post(api_url, json={"chat_id": telegram_id, "text": text})
+
+
+async def _notify_telegram_signature_received(telegram_id: int, intent) -> None:
+    settings = get_settings()
+    if not settings.telegram_bot_token:
+        return
+
+    payload = intent.payload or {}
+    amount = payload.get("amount_usdc")
+    side = payload.get("side", intent.intent_type)
+    question = payload.get("market_question", "Selected market")
+    amount_text = f"{float(amount):.2f} USDC " if amount is not None else ""
+    text = (
+        "Wallet signature received\n"
+        "-------------------------\n"
+        f"Signing request #{intent.id}\n"
+        f"{amount_text}{side}\n"
+        f"{question}\n\n"
+        "Next: submit the signed order to Polymarket and wait for transaction confirmation."
+    )
 
     api_url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
     async with httpx.AsyncClient(timeout=10) as client:

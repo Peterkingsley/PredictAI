@@ -128,7 +128,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 },
             )
 
-        signing_url = _signing_url(settings.mini_app_url, intent.id)
+        signing_url = _signing_url(settings.mini_app_url, intent.id, query.from_user.id)
         qr_image = _qr_png(signing_url)
         context.user_data.pop("bet_flow", None)
         await query.edit_message_text(
@@ -152,9 +152,9 @@ def _price_for_side(market: dict, side: str) -> float:
     return max(float(market.get("no_price") or (100 - market.get("probability", 0)) / 100), 0.01)
 
 
-def _signing_url(mini_app_url: str, intent_id: int) -> str:
+def _signing_url(mini_app_url: str, intent_id: int, telegram_id: int) -> str:
     separator = "&" if "?" in mini_app_url else "?"
-    return f"{mini_app_url}{separator}{urlencode({'intent_id': intent_id})}"
+    return f"{mini_app_url}{separator}{urlencode({'intent_id': intent_id, 'telegram_id': telegram_id})}"
 
 
 def _qr_png(value: str) -> BytesIO:
