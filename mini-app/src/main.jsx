@@ -98,6 +98,10 @@ function ExternalBrowserFallback() {
       <p className="status">
         If your wallet app will not open from Telegram, open this page in your browser first.
       </p>
+      <p className="status">
+        If Trust Wallet opens to the home screen, return here, copy the WalletConnect link from the modal, then use
+        Trust Wallet's scanner or WalletConnect screen to pair it.
+      </p>
       <button className="secondary" onClick={openExternally}>
         Open in browser
       </button>

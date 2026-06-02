@@ -10,6 +10,8 @@ export const apiBaseUrl = (import.meta.env.VITE_API_BASE_URL || "").replace(/\/$
 export const appUrl = (import.meta.env.VITE_APP_URL || window.location.origin).replace(/\/$/, "");
 export const requiredNetwork = polygon;
 
+const METAMASK_WALLET_ID = "c57ca95b47569778a828d19178114f4db188b89b763c899ba0be274e97267d96";
+const TRUST_WALLET_ID = "4622a2b2d6af1c9844944291e5e7351a6aa24cd7b23099efac1b2fd875da31a0";
 const networks = [polygon];
 const queryClient = new QueryClient();
 const metadata = {
@@ -17,6 +19,9 @@ const metadata = {
   description: "Telegram-native Polymarket assistant",
   url: appUrl,
   icons: [`${appUrl}/vite.svg`],
+  redirect: {
+    universal: appUrl,
+  },
 };
 
 let wagmiAdapter = null;
@@ -33,6 +38,8 @@ if (walletConnectProjectId) {
     networks,
     projectId: walletConnectProjectId,
     metadata,
+    featuredWalletIds: [TRUST_WALLET_ID, METAMASK_WALLET_ID],
+    allWallets: "ONLY_MOBILE",
     features: {
       analytics: false,
       email: false,
