@@ -4,9 +4,9 @@ PredictAI must stay non-custodial. The backend never receives a user private key
 
 ## Current state
 
-The bot supports simulated bets and stores demo positions. Real trading is not enabled yet.
+The bot supports live market browsing, wallet connection, typed-data order signing, backend signature verification, and a safety-gated Polymarket CLOB submission bridge.
 
-The Telegram bot now creates a backend `SigningIntent` at bet confirmation time, sends the user a QR code for the Mini App signing URL, and includes an open-link fallback button. The Mini App can load the intent, require the connected Polygon wallet to match the intent wallet, sign a deterministic PredictAI review message through WalletConnect/Reown, and submit the signature to `/trades/signing-intents/{id}/complete`.
+The Telegram bot creates a backend `SigningIntent` at order confirmation time, sends the user a QR code for the Mini App signing URL, and includes an open-link fallback button. The Mini App loads the intent, requires the connected Polygon wallet to match the intent wallet, signs PredictAI typed order data through WalletConnect/Reown, and submits the signature to `/trades/signing-intents/{id}/complete`.
 
 ## Target flow
 
@@ -21,7 +21,7 @@ The Telegram bot now creates a backend `SigningIntent` at bet confirmation time,
 9. Chain/indexer infrastructure calls `/trades/webhooks/transaction-finalized` after finality.
 10. Backend records the finalized status and sends the user a Telegram confirmation.
 
-The current Mini App signature is a bridge implementation for intent review and wallet ownership proof. The next production step is replacing the review message with the exact Polymarket typed-data payload and adding backend signature verification before any order submission.
+Live Polymarket submission remains controlled by `POLYMARKET_ORDER_SUBMISSION_ENABLED` and required CLOB credentials so production can be tested safely before live orders are enabled.
 
 ## Boundaries
 

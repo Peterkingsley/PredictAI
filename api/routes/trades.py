@@ -51,8 +51,8 @@ class TransactionFinalizedRequest(BaseModel):
 @router.post("/build")
 async def build_order(request: BuildOrderRequest):
     return {
-        "status": "not_enabled",
-        "message": "Real trade construction is intentionally disabled until wallet signing is validated.",
+        "status": "signing_required",
+        "message": "Create a signing intent and complete wallet approval before Polymarket submission.",
         "request": request.model_dump(),
     }
 

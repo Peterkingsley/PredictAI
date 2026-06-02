@@ -76,7 +76,7 @@ def bet_amount_keyboard() -> InlineKeyboardMarkup:
 def bet_confirm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("Confirm demo bet", callback_data="bet_confirm")],
+            [InlineKeyboardButton("Confirm order", callback_data="bet_confirm")],
             [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],
         ]
     )
@@ -87,7 +87,7 @@ def position_actions_keyboard(position_id: int) -> InlineKeyboardMarkup:
         [
             [
                 InlineKeyboardButton("Details", callback_data=f"position_detail:{position_id}"),
-                InlineKeyboardButton("Sell demo", callback_data=f"position_sell:{position_id}"),
+                InlineKeyboardButton("Sell", callback_data=f"position_sell:{position_id}"),
             ],
             [InlineKeyboardButton("Share", callback_data=f"position_share:{position_id}")],
         ]

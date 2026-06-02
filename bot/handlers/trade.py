@@ -43,7 +43,7 @@ async def start_bet_flow(update: Update, context: ContextTypes.DEFAULT_TYPE, mar
     if not wallet:
         await _reply_or_edit(
             update,
-            "Wallet needed\nConnect a wallet before placing a demo bet.\n\nUse /connect, then try again.",
+            "Wallet needed\nConnect a wallet before preparing an order.\n\nUse /connect, then try again.",
         )
         return
 
@@ -85,15 +85,15 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         shares = amount / price if price > 0 else 0
         flow.update({"amount": amount, "price": price, "shares": shares})
         await query.edit_message_text(
-            "Confirm your demo bet\n"
-            "----------------------\n"
+            "Confirm your order\n"
+            "------------------\n"
             f"Market: {market['question']}\n"
             f"Position: {side}\n"
             f"Amount: {amount:.2f} USDC\n"
             f"Entry price: ${price:.2f}\n"
             f"Shares: {shares:.2f}\n"
             f"Max payout: {shares:.2f} USDC\n\n"
-            "This is a simulation. No funds move.",
+            "Next step: sign this order with your connected wallet.",
             reply_markup=bet_confirm_keyboard(),
         )
         return

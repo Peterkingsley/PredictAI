@@ -2,7 +2,7 @@ from typing import Any
 
 START_TEXT = (
     "Welcome to PredictAI\n"
-    "Browse live prediction markets, get AI analysis, and prepare demo bets from Telegram.\n\n"
+    "Browse live prediction markets, get AI analysis, connect your wallet, and prepare Polymarket orders from Telegram.\n\n"
     "Quick start:\n"
     "/markets\n"
     "/search fed\n"
@@ -24,10 +24,10 @@ HELP_TEXT = (
     "/quick [market id or keyword] - quick read\n"
     "/alerts [market id or keyword] - set probability alert\n\n"
     "Trading\n"
-    "/bet [market id or keyword] - place a demo bet\n"
-    "/portfolio - view demo positions\n"
-    "/history - past demo bets\n"
-    "/pnl - demo P&L snapshot\n\n"
+    "/bet [market id or keyword] - prepare a Polymarket order\n"
+    "/portfolio - view positions\n"
+    "/history - past orders\n"
+    "/pnl - P&L snapshot\n\n"
     "Account\n"
     "/connect - connect wallet\n"
     "/wallets - list wallets\n"

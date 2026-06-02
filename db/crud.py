@@ -75,38 +75,6 @@ async def disconnect_wallets(session: AsyncSession, telegram_id: int) -> int:
     return len(wallets)
 
 
-async def create_demo_position(
-    session: AsyncSession,
-    telegram_id: int,
-    username: str | None,
-    wallet_address: str,
-    market_id: str,
-    market_question: str,
-    side: str,
-    amount_usdc: float,
-    shares: float,
-    entry_price: float,
-) -> Position:
-    user = await get_or_create_user(session, telegram_id=telegram_id, username=username)
-    position = Position(
-        user_id=user.id,
-        wallet_address=wallet_address,
-        market_id=market_id,
-        market_question=market_question,
-        side=side,
-        amount_usdc=amount_usdc,
-        shares=shares,
-        entry_price=entry_price,
-        current_price=entry_price,
-        status="OPEN",
-        tx_hash="demo",
-    )
-    session.add(position)
-    await session.commit()
-    await session.refresh(position)
-    return position
-
-
 async def list_open_positions(session: AsyncSession, telegram_id: int) -> list[Position]:
     result = await session.execute(select(User).where(User.telegram_id == telegram_id))
     user = result.scalar_one_or_none()
@@ -136,25 +104,6 @@ async def get_position(session: AsyncSession, telegram_id: int, position_id: int
         return None
     result = await session.execute(select(Position).where(Position.user_id == user.id, Position.id == position_id))
     return result.scalar_one_or_none()
-
-
-async def close_demo_position(session: AsyncSession, telegram_id: int, position_id: int) -> Position | None:
-    position = await get_position(session, telegram_id, position_id)
-    if not position or position.status != "OPEN":
-        return position
-
-    entry = float(position.entry_price)
-    if position.side == "YES":
-        simulated_exit = min(entry + 0.03, 0.99)
-    else:
-        simulated_exit = min(entry + 0.02, 0.99)
-
-    position.current_price = simulated_exit
-    position.status = "CLOSED"
-    position.closed_at = datetime.utcnow()
-    await session.commit()
-    await session.refresh(position)
-    return position
 
 
 async def create_alert(

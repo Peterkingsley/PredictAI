@@ -25,7 +25,7 @@ def refresh_market_cache() -> int:
 
 @celery_app.task
 def reset_weekly_leaderboard() -> str:
-    return "not_enabled"
+    return "not_configured"
 
 
 @celery_app.task

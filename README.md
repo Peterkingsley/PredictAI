@@ -1,6 +1,6 @@
 # PredictAI
 
-PredictAI is a Telegram bot for browsing Polymarket prediction markets, receiving AI-style market analysis, connecting wallets, and preparing for non-custodial trading flows.
+PredictAI is a Telegram bot for browsing Polymarket prediction markets, receiving AI-style market analysis, connecting wallets, and preparing non-custodial Polymarket orders.
 
 This repository contains the production app scaffold:
 
@@ -8,7 +8,7 @@ This repository contains the production app scaffold:
 - `api/` FastAPI backend
 - `db/` SQLAlchemy models and CRUD helpers
 - `workers/` Celery jobs for market cache refreshes
-- `mini-app/` Telegram Mini App placeholder for WalletConnect
+- `mini-app/` Telegram Mini App for WalletConnect and typed-data order signing
 
 ## Current phase
 
@@ -25,7 +25,7 @@ Phase 1 is focused on the working Telegram bot foundation:
 - `/portfolio` placeholder
 - live Polymarket market data via `py-clob-client`, with HTTP fallback
 
-Trading routes and wallet signing are intentionally scaffolded but not enabled for real funds yet.
+Wallet signing, backend signature verification, and safety-gated Polymarket CLOB order submission are implemented. Live submission is controlled by `POLYMARKET_ORDER_SUBMISSION_ENABLED`.
 
 ## Local setup
 

@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from bot.keyboards import position_actions_keyboard
-from db.crud import close_demo_position, get_position, list_open_positions, list_positions
+from db.crud import get_position, list_open_positions, list_positions
 from db.models import SessionLocal
 
 
@@ -24,7 +24,7 @@ async def portfolio_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.effective_message.reply_text(
             "Your portfolio\n"
             "--------------\n"
-            "No open demo positions yet.\n\nUse /bet [market] or open a market and tap Bet."
+            "No open positions yet.\n\nUse /bet [market] or open a market and tap Bet."
         )
         return
 
@@ -41,7 +41,7 @@ async def portfolio_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
                 f"/position_{position.id}",
             ]
         )
-    lines.insert(3, f"Demo PnL: {total_pnl:+.2f} USDC")
+    lines.insert(3, f"P&L: {total_pnl:+.2f} USDC")
     await update.effective_message.reply_text("\n".join(lines))
 
 
@@ -50,10 +50,10 @@ async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         positions = await list_positions(session, update.effective_user.id, limit=10)
 
     if not positions:
-        await update.effective_message.reply_text("Bet history\n-----------\nNo demo bets yet.")
+        await update.effective_message.reply_text("Order history\n-------------\nNo orders yet.")
         return
 
-    lines = ["Bet history", "-----------"]
+    lines = ["Order history", "-------------"]
     for position in positions:
         amount, shares, entry, current, value, pnl = _position_numbers(position)
         lines.extend(
@@ -89,7 +89,7 @@ async def pnl_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         f"Open bets: {open_count}\n"
         f"Closed bets: {closed_count}\n"
         f"Total staked: {staked:.2f} USDC\n"
-        f"Demo P&L: {total_pnl:+.2f} USDC"
+        f"P&L: {total_pnl:+.2f} USDC"
     )
 
 
@@ -120,10 +120,7 @@ async def portfolio_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
     position_id = int(raw_id)
 
     async with SessionLocal() as session:
-        if action == "position_sell":
-            position = await close_demo_position(session, query.from_user.id, position_id)
-        else:
-            position = await get_position(session, query.from_user.id, position_id)
+        position = await get_position(session, query.from_user.id, position_id)
 
     if not position:
         await query.edit_message_text("Position not found.")
@@ -134,17 +131,17 @@ async def portfolio_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.edit_message_text(
             "Share preview\n"
             "-------------\n"
-            f"I placed a demo {position.side} bet on PredictAI:\n"
+            f"I placed a {position.side} order on PredictAI:\n"
             f"{position.market_question}\n"
-            f"Demo P&L: {pnl:+.2f} USDC"
+            f"P&L: {pnl:+.2f} USDC"
         )
         return
 
     if action == "position_sell":
         await query.edit_message_text(
-            "Demo position closed\n"
-            "--------------------\n"
-            f"{_format_position_detail(position)}"
+            "Sell order flow is next\n"
+            "-----------------------\n"
+            "This position was not closed. Live sell order signing will use the same wallet approval flow."
         )
         return
 
@@ -164,5 +161,5 @@ def _format_position_detail(position) -> str:
         f"Entry: ${entry:.2f}\n"
         f"Current: ${current:.2f}\n"
         f"Value: {value:.2f} USDC\n"
-        f"Demo P&L: {pnl:+.2f} USDC"
+        f"P&L: {pnl:+.2f} USDC"
     )

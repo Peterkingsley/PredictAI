@@ -29,4 +29,4 @@ async def generic_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await connect_command(update, context)
         return
-    await query.edit_message_text("This flow is coming next. Try /markets or /analyze for the live demo.")
+    await query.edit_message_text("This flow is coming next. Try /markets or /analyze for live market data.")
