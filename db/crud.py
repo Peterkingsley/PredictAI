@@ -243,3 +243,27 @@ async def complete_signing_intent(session: AsyncSession, intent_id: int, signatu
     await session.commit()
     await session.refresh(intent)
     return intent
+
+
+async def finalize_signing_intent(
+    session: AsyncSession,
+    intent_id: int,
+    tx_hash: str,
+    status: str,
+) -> SigningIntent | None:
+    intent = await get_signing_intent(session, intent_id)
+    if not intent:
+        return None
+
+    intent.status = status
+    intent.payload = {
+        **(intent.payload or {}),
+        "transaction": {
+            "tx_hash": tx_hash,
+            "status": status,
+            "finalized_at": datetime.utcnow().isoformat(),
+        },
+    }
+    await session.commit()
+    await session.refresh(intent)
+    return intent

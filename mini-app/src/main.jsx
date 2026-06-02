@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from "@reown/appkit/react";
+import { useSignMessage } from "wagmi";
 import "./styles.css";
 import { AppKitProvider, apiBaseUrl, requiredNetwork, walletConnectProjectId } from "./walletConfig.jsx";
 
@@ -37,6 +38,16 @@ function formatPayloadValue(value) {
     return JSON.stringify(value, null, 2);
   }
   return String(value);
+}
+
+function buildSigningMessage(intent) {
+  return [
+    "PredictAI signing request",
+    `Intent ID: ${intent.id}`,
+    `Type: ${intent.intent_type}`,
+    `Wallet: ${normalizeAddress(intent.wallet_address)}`,
+    `Payload: ${JSON.stringify(intent.payload || {})}`,
+  ].join("\n");
 }
 
 function isTelegramWebApp() {
@@ -173,7 +184,54 @@ function WalletConnectPanel({ onWalletDetected, onWalletState }) {
   return <WalletConnectControls onWalletDetected={onWalletDetected} onWalletState={onWalletState} />;
 }
 
-function SigningIntentCard({ intentId, intent, loadState, loadError, walletState }) {
+function SignatureButton({ intent, canPrepareSignature, onSigned }) {
+  const [signState, setSignState] = useState("idle");
+  const [signError, setSignError] = useState("");
+  const { signMessageAsync } = useSignMessage();
+
+  async function signIntent() {
+    setSignState("signing");
+    setSignError("");
+    try {
+      const signature = await signMessageAsync({
+        message: buildSigningMessage(intent),
+      });
+      setSignState("submitting");
+      const response = await fetch(buildApiUrl(`/trades/signing-intents/${intent.id}/complete`), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ signature }),
+      });
+      if (!response.ok) {
+        throw new Error(`Signature submission failed (${response.status})`);
+      }
+      const data = await response.json();
+      if (data.status === "not_found") {
+        throw new Error(`Signing intent #${intent.id} was not found.`);
+      }
+      setSignState("signed");
+      onSigned({ ...intent, status: data.status || "SIGNED" });
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+    } catch (error) {
+      setSignError(error.message || "Unable to sign this request.");
+      setSignState("error");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
+    }
+  }
+
+  return (
+    <>
+      {signError ? <p className="status warning-text">{signError}</p> : null}
+      {signState === "signed" || intent.status === "SIGNED" ? <p className="status good">Signature submitted.</p> : null}
+
+      <button className="primary" disabled={!canPrepareSignature || signState === "signing" || signState === "submitting"} onClick={signIntent}>
+        {signState === "signing" ? "Opening wallet..." : signState === "submitting" ? "Submitting..." : "Sign request"}
+      </button>
+    </>
+  );
+}
+
+function SigningIntentCard({ intentId, intent, loadState, loadError, walletState, onSigned }) {
   if (!intentId) {
     return null;
   }
@@ -246,13 +304,9 @@ function SigningIntentCard({ intentId, intent, loadState, loadError, walletState
       ) : null}
       {walletMatches && !walletState.isPolygon ? <p className="status warning-text">Switch to Polygon before signing.</p> : null}
 
-      <button
-        className="primary"
-        disabled={!canPrepareSignature}
-        onClick={() => window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success")}
-      >
-        Ready to sign
-      </button>
+      {walletConnectProjectId ? (
+        <SignatureButton intent={intent} canPrepareSignature={canPrepareSignature} onSigned={onSigned} />
+      ) : null}
     </div>
   );
 }
@@ -356,6 +410,7 @@ function App() {
           loadState={intentLoadState}
           loadError={intentLoadError}
           walletState={walletState}
+          onSigned={setIntent}
         />
 
         <WalletConnectPanel onWalletDetected={handleWalletDetected} onWalletState={handleWalletState} />

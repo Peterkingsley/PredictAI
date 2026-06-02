@@ -1,12 +1,18 @@
 from __future__ import annotations
 
+from io import BytesIO
+from urllib.parse import urlencode
+
+import qrcode
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from api.config import get_settings
 from api.services.polymarket import PolymarketService
 from api.services.wallets import short_address
 from bot.keyboards import bet_amount_keyboard, bet_confirm_keyboard, bet_side_keyboard
-from db.crud import create_demo_position, get_active_wallet
+from db.crud import create_signing_intent, get_active_wallet
 from db.models import SessionLocal
 
 service = PolymarketService()
@@ -99,27 +105,44 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if action == "bet_confirm":
         market = flow["market"]
+        settings = get_settings()
+        if not settings.mini_app_url:
+            await query.edit_message_text("Signing is almost ready. Set MINI_APP_URL, then try again.")
+            return
+
         async with SessionLocal() as session:
-            await create_demo_position(
+            intent = await create_signing_intent(
                 session,
                 telegram_id=query.from_user.id,
-                username=query.from_user.username,
                 wallet_address=flow["wallet_address"],
-                market_id=market["id"],
-                market_question=market["question"],
-                side=flow["side"],
-                amount_usdc=float(flow["amount"]),
-                shares=float(flow["shares"]),
-                entry_price=float(flow["price"]),
+                intent_type="BUY",
+                payload={
+                    "market_id": market["id"],
+                    "market_question": market["question"],
+                    "side": flow["side"],
+                    "amount_usdc": float(flow["amount"]),
+                    "shares": float(flow["shares"]),
+                    "entry_price": float(flow["price"]),
+                    "wallet_address": flow["wallet_address"],
+                    "source": "telegram_qr",
+                },
             )
 
+        signing_url = _signing_url(settings.mini_app_url, intent.id)
+        qr_image = _qr_png(signing_url)
         context.user_data.pop("bet_flow", None)
         await query.edit_message_text(
-            "Demo bet placed\n"
-            "---------------\n"
+            "Signing request created\n"
+            "-----------------------\n"
             f"{float(flow['amount']):.2f} USDC on {flow['side']}\n"
             f"{market['question']}\n\n"
-            "Use /portfolio to track it."
+            "Scan the QR code with MetaMask or Trust Wallet, approve in your wallet, then wait for Telegram confirmation."
+        )
+        await context.bot.send_photo(
+            chat_id=query.message.chat_id,
+            photo=qr_image,
+            caption=f"Signing request #{intent.id}\nWallet: {short_address(flow['wallet_address'])}",
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Open signing page", url=signing_url)]]),
         )
 
 
@@ -127,6 +150,20 @@ def _price_for_side(market: dict, side: str) -> float:
     if side == "YES":
         return max(float(market.get("yes_price") or market.get("probability", 0) / 100), 0.01)
     return max(float(market.get("no_price") or (100 - market.get("probability", 0)) / 100), 0.01)
+
+
+def _signing_url(mini_app_url: str, intent_id: int) -> str:
+    separator = "&" if "?" in mini_app_url else "?"
+    return f"{mini_app_url}{separator}{urlencode({'intent_id': intent_id})}"
+
+
+def _qr_png(value: str) -> BytesIO:
+    image = qrcode.make(value)
+    output = BytesIO()
+    image.save(output, format="PNG")
+    output.seek(0)
+    output.name = "predictai-signing-request.png"
+    return output
 
 
 async def _reply_or_edit(update: Update, text: str, reply_markup=None) -> None:
