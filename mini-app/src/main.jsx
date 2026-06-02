@@ -51,6 +51,14 @@ function buildSigningMessage(intent) {
   ].join("\n");
 }
 
+function buildConnectionMessage(address) {
+  return [
+    "PredictAI wallet connection",
+    `Wallet: ${normalizeAddress(address)}`,
+    "Purpose: Connect this wallet to your Telegram account.",
+  ].join("\n");
+}
+
 function isTelegramWebApp() {
   return Boolean(window.Telegram?.WebApp);
 }
@@ -312,6 +320,53 @@ function SigningIntentCard({ intentId, intent, loadState, loadError, walletState
   );
 }
 
+function ConnectionProofButton({ walletState, proof, onProofReady }) {
+  const [proofState, setProofState] = useState("idle");
+  const [proofError, setProofError] = useState("");
+  const { signMessageAsync } = useSignMessage();
+  const canSignConnection = walletState.isConnected && walletState.isPolygon && isAddress(walletState.address);
+
+  useEffect(() => {
+    if (proof.address && normalizeAddress(proof.address) !== normalizeAddress(walletState.address)) {
+      onProofReady({ address: "", message: "", signature: "" });
+      setProofState("idle");
+    }
+  }, [onProofReady, proof.address, walletState.address]);
+
+  async function signConnection() {
+    setProofState("signing");
+    setProofError("");
+    try {
+      const message = buildConnectionMessage(walletState.address);
+      const signature = await signMessageAsync({ message });
+      onProofReady({ address: walletState.address, message, signature });
+      setProofState("signed");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+    } catch (error) {
+      setProofError(error.message || "Unable to sign wallet connection.");
+      setProofState("error");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
+    }
+  }
+
+  if (!walletConnectProjectId) {
+    return null;
+  }
+
+  return (
+    <div className="signing-card">
+      <p className="label">Connection signature</p>
+      <p className="status">
+        {proof.signature ? "Wallet ownership confirmed." : "Sign a connection message before sending this wallet to Telegram."}
+      </p>
+      {proofError ? <p className="status warning-text">{proofError}</p> : null}
+      <button className="primary" disabled={!canSignConnection || proofState === "signing"} onClick={signConnection}>
+        {proofState === "signing" ? "Opening wallet..." : proof.signature ? "Sign again" : "Sign wallet connection"}
+      </button>
+    </div>
+  );
+}
+
 function App() {
   const [status, setStatus] = useState("Ready");
   const [intentId] = useState(getIntentId);
@@ -323,6 +378,11 @@ function App() {
     chainId: null,
     isConnected: false,
     isPolygon: false,
+  });
+  const [connectionProof, setConnectionProof] = useState({
+    address: "",
+    message: "",
+    signature: "",
   });
   const handleWalletDetected = useCallback((wallet) => {
     setStatus(`WalletConnect account ready: ${shortAddress(wallet)}.`);
@@ -380,10 +440,16 @@ function App() {
       setStatus("Switch to Polygon before sending your wallet.");
       return;
     }
+    if (!intentId && !connectionProof.signature) {
+      setStatus("Sign the wallet connection first.");
+      return;
+    }
 
     const payload = JSON.stringify({
       type: "wallet_connected",
       address: walletState.address,
+      connection_message: connectionProof.message,
+      connection_signature: connectionProof.signature,
     });
 
     if (window.Telegram?.WebApp?.sendData) {
@@ -416,7 +482,15 @@ function App() {
 
         <WalletConnectPanel onWalletDetected={handleWalletDetected} onWalletState={handleWalletState} />
 
-        <button className="primary" disabled={!walletState.isConnected || !walletState.isPolygon} onClick={sendWallet}>
+        {!intentId ? (
+          <ConnectionProofButton walletState={walletState} proof={connectionProof} onProofReady={setConnectionProof} />
+        ) : null}
+
+        <button
+          className="primary"
+          disabled={!walletState.isConnected || !walletState.isPolygon || (!intentId && !connectionProof.signature)}
+          onClick={sendWallet}
+        >
           Send to Telegram
         </button>
 

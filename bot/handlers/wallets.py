@@ -73,6 +73,7 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
         await update.effective_message.reply_text("That does not look like a valid EVM wallet address.")
         return
 
+    connection_signature = str(data.get("connection_signature", "")).strip()
     async with SessionLocal() as session:
         wallet = await add_wallet(
             session,
@@ -83,7 +84,8 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     balance = await get_usdc_balance(wallet.address)
     balance_text = f"\n\nUSDC balance: {balance:.2f}" if balance is not None else ""
+    proof_text = "\nConnection signature received." if connection_signature else "\nConnection signature missing."
     await update.effective_message.reply_text(
-        f"Wallet connected\n{short_address(wallet.address)}{balance_text}\n\nTry /markets or /wallets.",
+        f"Wallet connected\n{short_address(wallet.address)}{proof_text}{balance_text}\n\nTry /markets or /wallets.",
         reply_markup=ReplyKeyboardRemove(),
     )
