@@ -233,12 +233,31 @@ async def get_signing_intent(session: AsyncSession, intent_id: int) -> SigningIn
     return result.scalar_one_or_none()
 
 
+async def update_signing_intent_payload(
+    session: AsyncSession,
+    intent_id: int,
+    payload: dict,
+) -> SigningIntent | None:
+    intent = await get_signing_intent(session, intent_id)
+    if not intent:
+        return None
+    intent.payload = payload
+    await session.commit()
+    await session.refresh(intent)
+    return intent
+
+
 async def complete_signing_intent(session: AsyncSession, intent_id: int, signature: str) -> SigningIntent | None:
     intent = await get_signing_intent(session, intent_id)
     if not intent:
         return None
     intent.status = "SIGNED"
     intent.signature = signature
+    intent.payload = {
+        **(intent.payload or {}),
+        "signature_verified": True,
+        "signature_verified_at": datetime.utcnow().isoformat(),
+    }
     intent.completed_at = datetime.utcnow()
     await session.commit()
     await session.refresh(intent)

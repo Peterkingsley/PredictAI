@@ -12,7 +12,7 @@ from api.config import get_settings
 from api.services.polymarket import PolymarketService
 from api.services.wallets import short_address
 from bot.keyboards import bet_amount_keyboard, bet_confirm_keyboard, bet_side_keyboard
-from db.crud import create_signing_intent, get_active_wallet
+from db.crud import create_signing_intent, get_active_wallet, update_signing_intent_payload
 from db.models import SessionLocal
 
 service = PolymarketService()
@@ -111,20 +111,31 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             return
 
         async with SessionLocal() as session:
+            base_payload = {
+                "market_id": market["id"],
+                "market_question": market["question"],
+                "side": flow["side"],
+                "amount_usdc": float(flow["amount"]),
+                "shares": float(flow["shares"]),
+                "entry_price": float(flow["price"]),
+                "wallet_address": flow["wallet_address"],
+                "outcome_token_id": _token_id_for_side(market, flow["side"]),
+                "source": "telegram_qr",
+            }
             intent = await create_signing_intent(
                 session,
                 telegram_id=query.from_user.id,
                 wallet_address=flow["wallet_address"],
                 intent_type="BUY",
-                payload={
-                    "market_id": market["id"],
-                    "market_question": market["question"],
-                    "side": flow["side"],
-                    "amount_usdc": float(flow["amount"]),
-                    "shares": float(flow["shares"]),
-                    "entry_price": float(flow["price"]),
-                    "wallet_address": flow["wallet_address"],
-                    "source": "telegram_qr",
+                payload=base_payload,
+            )
+            intent = await update_signing_intent_payload(
+                session,
+                intent.id,
+                {
+                    **base_payload,
+                    "signature_kind": "predictai_eip712_order_intent",
+                    "typed_data": _build_order_intent_typed_data(intent.id, base_payload),
                 },
             )
 
@@ -150,6 +161,48 @@ def _price_for_side(market: dict, side: str) -> float:
     if side == "YES":
         return max(float(market.get("yes_price") or market.get("probability", 0) / 100), 0.01)
     return max(float(market.get("no_price") or (100 - market.get("probability", 0)) / 100), 0.01)
+
+
+def _token_id_for_side(market: dict, side: str) -> str | None:
+    if side == "YES":
+        return market.get("yes_token_id")
+    return market.get("no_token_id")
+
+
+def _build_order_intent_typed_data(intent_id: int, payload: dict) -> dict:
+    return {
+        "types": {
+            "EIP712Domain": [
+                {"name": "name", "type": "string"},
+                {"name": "version", "type": "string"},
+                {"name": "chainId", "type": "uint256"},
+            ],
+            "PredictAIOrderIntent": [
+                {"name": "intentId", "type": "uint256"},
+                {"name": "wallet", "type": "address"},
+                {"name": "marketId", "type": "string"},
+                {"name": "side", "type": "string"},
+                {"name": "amountUsdcMicro", "type": "uint256"},
+                {"name": "limitPriceBps", "type": "uint256"},
+                {"name": "sharesMicro", "type": "uint256"},
+            ],
+        },
+        "primaryType": "PredictAIOrderIntent",
+        "domain": {
+            "name": "PredictAI",
+            "version": "1",
+            "chainId": get_settings().polygon_chain_id,
+        },
+        "message": {
+            "intentId": intent_id,
+            "wallet": payload["wallet_address"],
+            "marketId": str(payload["market_id"]),
+            "side": payload["side"],
+            "amountUsdcMicro": round(float(payload["amount_usdc"]) * 1_000_000),
+            "limitPriceBps": round(float(payload["entry_price"]) * 10_000),
+            "sharesMicro": round(float(payload["shares"]) * 1_000_000),
+        },
+    }
 
 
 def _signing_url(mini_app_url: str, intent_id: int, telegram_id: int) -> str:

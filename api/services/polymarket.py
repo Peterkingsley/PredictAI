@@ -28,6 +28,8 @@ class Market:
     volume: float
     end_date: str | None
     active: bool
+    yes_token_id: str | None = None
+    no_token_id: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -40,6 +42,8 @@ class Market:
             "volume": round(self.volume, 2),
             "end_date": self.end_date,
             "active": self.active,
+            "yes_token_id": self.yes_token_id,
+            "no_token_id": self.no_token_id,
         }
 
 
@@ -124,6 +128,8 @@ class PolymarketService:
         tokens = item.get("tokens") or item.get("outcomes") or []
         yes_price = self._extract_price(tokens, "yes")
         no_price = self._extract_price(tokens, "no")
+        yes_token_id = self._extract_token_id(tokens, "yes")
+        no_token_id = self._extract_token_id(tokens, "no")
         if yes_price <= 0 and no_price > 0:
             yes_price = 1 - no_price
         if no_price <= 0 and yes_price > 0:
@@ -145,6 +151,8 @@ class PolymarketService:
             volume=volume,
             end_date=end_date,
             active=active,
+            yes_token_id=yes_token_id,
+            no_token_id=no_token_id,
         )
 
     def _extract_price(self, tokens: Any, outcome: str) -> float:
@@ -155,6 +163,16 @@ class PolymarketService:
             if token_outcome == outcome:
                 return float(token.get("price") or token.get("last_price") or token.get("lastPrice") or 0)
         return 0
+
+    def _extract_token_id(self, tokens: Any, outcome: str) -> str | None:
+        if not isinstance(tokens, list):
+            return None
+        for token in tokens:
+            token_outcome = str(token.get("outcome") or token.get("name") or "").lower()
+            if token_outcome == outcome:
+                token_id = token.get("token_id") or token.get("tokenId") or token.get("id")
+                return str(token_id) if token_id else None
+        return None
 
     def _is_expired(self, end_date: Any) -> bool:
         if not end_date:

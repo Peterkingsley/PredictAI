@@ -2,7 +2,7 @@ import "./polyfills.js";
 import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from "@reown/appkit/react";
-import { useSignMessage } from "wagmi";
+import { useSignMessage, useSignTypedData } from "wagmi";
 import "./styles.css";
 import { AppKitProvider, apiBaseUrl, requiredNetwork, walletConnectProjectId } from "./walletConfig.jsx";
 
@@ -61,6 +61,11 @@ function buildConnectionMessage(address) {
     `Wallet: ${normalizeAddress(address)}`,
     "Purpose: Connect this wallet to your Telegram account.",
   ].join("\n");
+}
+
+function typedDataTypesForWallet(typedData) {
+  const { EIP712Domain, ...messageTypes } = typedData?.types || {};
+  return messageTypes;
 }
 
 function isTelegramWebApp() {
@@ -240,22 +245,32 @@ function SignatureButton({ intent, canPrepareSignature, onSigned }) {
   const [signState, setSignState] = useState("idle");
   const [signError, setSignError] = useState("");
   const { signMessageAsync } = useSignMessage();
+  const { signTypedDataAsync } = useSignTypedData();
+  const typedData = intent.payload?.typed_data;
 
   async function signIntent() {
     setSignState("signing");
     setSignError("");
     try {
-      const signature = await signMessageAsync({
-        message: buildSigningMessage(intent),
-      });
+      const signature = typedData
+        ? await signTypedDataAsync({
+            domain: typedData.domain,
+            types: typedDataTypesForWallet(typedData),
+            primaryType: typedData.primaryType,
+            message: typedData.message,
+          })
+        : await signMessageAsync({
+            message: buildSigningMessage(intent),
+          });
       setSignState("submitting");
       const response = await fetch(buildApiUrl(`/trades/signing-intents/${intent.id}/complete`), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ signature }),
+        body: JSON.stringify({ signature, typed_data: typedData || null }),
       });
       if (!response.ok) {
-        throw new Error(`Signature submission failed (${response.status})`);
+        const error = await response.json().catch(() => ({}));
+        throw new Error(error.detail || `Signature submission failed (${response.status})`);
       }
       const data = await response.json();
       if (data.status === "not_found") {
@@ -278,7 +293,7 @@ function SignatureButton({ intent, canPrepareSignature, onSigned }) {
     <>
       {signError ? <p className="status warning-text">{signError}</p> : null}
       {signState === "signed" || intent.status === "SIGNED" ? (
-        <p className="status good">Signature submitted. Return to Telegram for the next update.</p>
+        <p className="status good">Typed order intent verified. Return to Telegram for the next update.</p>
       ) : null}
 
       <button className="primary" disabled={!canPrepareSignature || signState === "signing" || signState === "submitting"} onClick={signIntent}>
