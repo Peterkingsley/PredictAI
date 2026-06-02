@@ -119,6 +119,35 @@ function ExternalBrowserFallback() {
   );
 }
 
+function TrustWalletBrowserLaunch() {
+  const currentUrl = window.location.href;
+  const trustWalletUrl = `https://link.trustwallet.com/open_url?coin_id=${TRUST_WALLET_POLYGON_COIN_ID}&url=${encodeURIComponent(currentUrl)}`;
+
+  function openTrustWalletBrowser() {
+    if (window.Telegram?.WebApp?.openLink) {
+      window.Telegram.WebApp.openLink(trustWalletUrl, { try_instant_view: false });
+      return;
+    }
+    window.open(trustWalletUrl, "_blank", "noopener,noreferrer");
+  }
+
+  if (!isTelegramWebApp()) {
+    return null;
+  }
+
+  return (
+    <div className="fallback-panel">
+      <p className="label">Trust Wallet</p>
+      <p className="status">
+        Open PredictAI inside Trust Wallet first, then connect from there. This avoids Telegram dropping the WalletConnect pairing link.
+      </p>
+      <button className="primary" onClick={openTrustWalletBrowser}>
+        Open in Trust Wallet
+      </button>
+    </div>
+  );
+}
+
 function WalletConnectControls({ onWalletDetected, onWalletState }) {
   const { open } = useAppKit();
   const { disconnect } = useDisconnect();
@@ -148,6 +177,8 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
 
   return (
     <div className="wallet-connect">
+      <TrustWalletBrowserLaunch />
+
       <div className="wallet-row">
         <div>
           <p className="label">WalletConnect</p>
