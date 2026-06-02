@@ -264,6 +264,26 @@ async def complete_signing_intent(session: AsyncSession, intent_id: int, signatu
     return intent
 
 
+async def update_signing_intent_submission(
+    session: AsyncSession,
+    intent_id: int,
+    submission: dict,
+    status: str | None = None,
+) -> SigningIntent | None:
+    intent = await get_signing_intent(session, intent_id)
+    if not intent:
+        return None
+    intent.payload = {
+        **(intent.payload or {}),
+        "order_submission": submission,
+    }
+    if status:
+        intent.status = status
+    await session.commit()
+    await session.refresh(intent)
+    return intent
+
+
 async def finalize_signing_intent(
     session: AsyncSession,
     intent_id: int,

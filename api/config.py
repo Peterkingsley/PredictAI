@@ -13,6 +13,12 @@ class Settings(BaseSettings):
     database_url: str = ""
     redis_url: str = ""
     polymarket_private_key: str = ""
+    polymarket_api_key: str = ""
+    polymarket_api_secret: str = ""
+    polymarket_api_passphrase: str = ""
+    polymarket_funder_address: str = ""
+    polymarket_signature_type: int = 0
+    polymarket_order_submission_enabled: bool = False
     polymarket_host: str = "https://clob.polymarket.com"
     polygon_chain_id: int = 137
     polygon_rpc_url: str = ""

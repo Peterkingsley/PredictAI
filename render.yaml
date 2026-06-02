@@ -42,6 +42,18 @@ services:
         sync: false
       - key: POLYMARKET_PRIVATE_KEY
         sync: false
+      - key: POLYMARKET_API_KEY
+        sync: false
+      - key: POLYMARKET_API_SECRET
+        sync: false
+      - key: POLYMARKET_API_PASSPHRASE
+        sync: false
+      - key: POLYMARKET_FUNDER_ADDRESS
+        sync: false
+      - key: POLYMARKET_SIGNATURE_TYPE
+        value: "0"
+      - key: POLYMARKET_ORDER_SUBMISSION_ENABLED
+        value: "false"
       - key: POLYMARKET_HOST
         value: https://clob.polymarket.com
       - key: POLYGON_CHAIN_ID

@@ -5,6 +5,7 @@ from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel, Field
 
 from api.config import get_settings
+from api.services.order_submission import OrderSubmissionError, PolymarketOrderSubmissionService
 from api.services.wallets import short_address
 from db.crud import (
     complete_signing_intent,
@@ -13,6 +14,7 @@ from db.crud import (
     get_signing_intent,
     list_open_positions,
     list_positions,
+    update_signing_intent_submission,
 )
 from db.models import SessionLocal
 
@@ -100,12 +102,20 @@ async def complete_intent(intent_id: int, request: CompleteSigningIntentRequest)
         if not verification["verified"]:
             raise HTTPException(status_code=400, detail=verification["message"])
         intent = await complete_signing_intent(session, intent_id, request.signature)
+        submission = _submit_verified_order_intent(intent)
+        intent = await update_signing_intent_submission(
+            session,
+            intent.id,
+            submission,
+            status="ORDER_SUBMITTED" if submission["status"] == "submitted" else None,
+        )
     await _notify_telegram_signature_received(intent.telegram_id, intent)
     return {
         "id": intent.id,
         "status": intent.status,
         "signature_verified": True,
         "recovered_address": verification["recovered_address"],
+        "order_submission": submission,
         "telegram_notified": bool(get_settings().telegram_bot_token),
     }
 
@@ -203,17 +213,24 @@ async def _notify_telegram_signature_received(telegram_id: int, intent) -> None:
         return
 
     payload = intent.payload or {}
+    submission = payload.get("order_submission") or {}
     amount = payload.get("amount_usdc")
     side = payload.get("side", intent.intent_type)
     question = payload.get("market_question", "Selected market")
     amount_text = f"{float(amount):.2f} USDC " if amount is not None else ""
+    if submission.get("status") == "submitted":
+        order_status = f"Order submitted to Polymarket CLOB.\nOrder: {submission.get('order_id') or 'pending ID'}"
+    elif submission.get("status") == "failed":
+        order_status = f"Order submission failed: {submission.get('message')}"
+    else:
+        order_status = f"Order submission queued: {submission.get('message', 'live submission is not enabled yet.')}"
     text = (
         "Wallet signature received\n"
         "-------------------------\n"
         f"Signing request #{intent.id}\n"
         f"{amount_text}{side}\n"
         f"{question}\n\n"
-        "Next: submit the signed order to Polymarket and wait for transaction confirmation."
+        f"{order_status}"
     )
 
     api_url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
@@ -248,3 +265,15 @@ def _verify_typed_data_signature(intent, signature: str, submitted_typed_data: d
             "recovered_address": recovered_address,
         }
     return {"verified": True, "message": "Signature verified.", "recovered_address": recovered_address}
+
+
+def _submit_verified_order_intent(intent) -> dict:
+    try:
+        return PolymarketOrderSubmissionService().submit_verified_intent(intent).as_dict()
+    except OrderSubmissionError as exc:
+        return {
+            "status": "failed",
+            "message": str(exc),
+            "order_id": None,
+            "raw_response": None,
+        }
