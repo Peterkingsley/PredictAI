@@ -496,6 +496,11 @@ function App() {
       connection_signature: connectionProof.signature,
     });
 
+    if (telegramId && apiBaseUrl) {
+      sendWalletViaApi();
+      return;
+    }
+
     if (hasTelegramSendData()) {
       window.Telegram.WebApp.sendData(payload);
       window.Telegram.WebApp.close();
@@ -588,7 +593,7 @@ function App() {
         <p className={walletState.isConnected && walletState.isPolygon ? "status good" : "status"}>{status}</p>
         {!intentId ? (
           <p className="status">
-            Send mode: {hasTelegramSendData() ? "Telegram WebApp" : "Backend API"}
+            Send mode: {telegramId && apiBaseUrl ? "Backend API" : hasTelegramSendData() ? "Telegram WebApp" : "Backend API"}
             {telegramId ? ` / Telegram ID ${telegramId}` : " / Telegram ID missing"}
           </p>
         ) : null}
