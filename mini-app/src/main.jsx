@@ -67,6 +67,10 @@ function isTelegramWebApp() {
   return Boolean(window.Telegram?.WebApp);
 }
 
+function hasTelegramSendData() {
+  return Boolean(window.Telegram?.WebApp?.sendData);
+}
+
 function ExternalBrowserFallback() {
   const [copyStatus, setCopyStatus] = useState("");
   const currentUrl = window.location.href;
@@ -492,7 +496,7 @@ function App() {
       connection_signature: connectionProof.signature,
     });
 
-    if (window.Telegram?.WebApp?.sendData) {
+    if (hasTelegramSendData()) {
       window.Telegram.WebApp.sendData(payload);
       window.Telegram.WebApp.close();
       return;
@@ -571,7 +575,23 @@ function App() {
           Send to Telegram
         </button>
 
+        {!intentId && !hasTelegramSendData() ? (
+          <button
+            className="secondary"
+            disabled={!walletState.isConnected || !walletState.isPolygon || !connectionProof.signature}
+            onClick={sendWalletViaApi}
+          >
+            Send through API
+          </button>
+        ) : null}
+
         <p className={walletState.isConnected && walletState.isPolygon ? "status good" : "status"}>{status}</p>
+        {!intentId ? (
+          <p className="status">
+            Send mode: {hasTelegramSendData() ? "Telegram WebApp" : "Backend API"}
+            {telegramId ? ` / Telegram ID ${telegramId}` : " / Telegram ID missing"}
+          </p>
+        ) : null}
       </section>
     </main>
   );

@@ -19,7 +19,7 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         return
 
     await update.effective_message.reply_text(
-        "Connect your wallet\nTap the keyboard button below to open the wallet connect screen.",
+        "Connect your wallet\nTap the keyboard button below to open the wallet connect screen.\n\nIf you are retrying after an update, use this fresh button.",
         reply_markup=_connect_wallet_keyboard_for_user(update.effective_user.id),
     )
 
