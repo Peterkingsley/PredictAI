@@ -13,9 +13,11 @@ from db.crud import (
     finalize_signing_intent,
     get_signing_intent,
     get_trade_order,
+    list_syncable_trade_orders,
     list_open_positions,
     list_positions,
     list_trade_orders,
+    update_trade_order_sync,
     update_signing_intent_submission,
     upsert_trade_order_from_intent,
 )
@@ -196,6 +198,34 @@ async def orders(telegram_id: int, limit: int = 10):
     return {
         "telegram_id": telegram_id,
         "orders": [_trade_order_dict(order) for order in trade_orders],
+    }
+
+
+@router.post("/orders/{telegram_id}/sync")
+async def sync_orders(telegram_id: int, limit: int = 25):
+    synced = []
+    errors = []
+    service = PolymarketOrderSubmissionService()
+    async with SessionLocal() as session:
+        trade_orders = await list_syncable_trade_orders(session, telegram_id=telegram_id, limit=limit)
+        for order in trade_orders:
+            try:
+                remote = service.fetch_order_status(order.polymarket_order_id)
+                updated = await update_trade_order_sync(
+                    session,
+                    order,
+                    remote_status=remote["status"],
+                    remote_response=remote["raw_response"],
+                )
+                synced.append(_trade_order_dict(updated))
+            except OrderSubmissionError as exc:
+                errors.append({"id": order.id, "message": str(exc)})
+    return {
+        "telegram_id": telegram_id,
+        "synced_count": len(synced),
+        "error_count": len(errors),
+        "orders": synced,
+        "errors": errors,
     }
 
 

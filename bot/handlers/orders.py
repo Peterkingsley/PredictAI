@@ -2,7 +2,8 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.services.wallets import short_address
-from db.crud import get_trade_order, list_trade_orders
+from api.services.order_submission import OrderSubmissionError, PolymarketOrderSubmissionService
+from db.crud import get_trade_order, list_syncable_trade_orders, list_trade_orders, update_trade_order_sync
 from db.models import SessionLocal
 
 
@@ -47,6 +48,33 @@ async def order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         return
 
     await update.effective_message.reply_text(_format_order_detail(order))
+
+
+async def sync_orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    service = PolymarketOrderSubmissionService()
+    synced = 0
+    errors = []
+    async with SessionLocal() as session:
+        orders = await list_syncable_trade_orders(session, telegram_id=update.effective_user.id, limit=10)
+        for order in orders:
+            try:
+                remote = service.fetch_order_status(order.polymarket_order_id)
+                await update_trade_order_sync(session, order, remote["status"], remote["raw_response"])
+                synced += 1
+            except OrderSubmissionError as exc:
+                errors.append(f"#{order.id}: {exc}")
+
+    lines = [
+        "Order sync",
+        "----------",
+        f"Synced: {synced}",
+        f"Errors: {len(errors)}",
+    ]
+    if not synced and not errors:
+        lines.append("No submitted/open Polymarket orders need syncing.")
+    if errors:
+        lines.extend(["", *errors[:5]])
+    await update.effective_message.reply_text("\n".join(lines))
 
 
 def _format_order_detail(order) -> str:

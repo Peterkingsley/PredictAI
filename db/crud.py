@@ -163,6 +163,40 @@ async def get_trade_order(session: AsyncSession, telegram_id: int, order_id: int
     return result.scalar_one_or_none()
 
 
+async def list_syncable_trade_orders(session: AsyncSession, telegram_id: int | None = None, limit: int = 25) -> list[TradeOrder]:
+    query = select(TradeOrder).where(
+        TradeOrder.polymarket_order_id.is_not(None),
+        TradeOrder.status.in_(["SUBMITTED", "OPEN", "PARTIALLY_FILLED"]),
+    )
+    if telegram_id is not None:
+        result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+        user = result.scalar_one_or_none()
+        if not user:
+            return []
+        query = query.where(TradeOrder.user_id == user.id)
+    result = await session.execute(query.order_by(TradeOrder.updated_at.asc()).limit(limit))
+    return list(result.scalars().all())
+
+
+async def update_trade_order_sync(
+    session: AsyncSession,
+    order: TradeOrder,
+    remote_status: str,
+    remote_response: dict,
+) -> TradeOrder:
+    order.status = remote_status
+    order.submission = {
+        **(order.submission or {}),
+        "remote_status": remote_status,
+        "remote_response": remote_response,
+        "synced_at": datetime.utcnow().isoformat(),
+    }
+    order.updated_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(order)
+    return order
+
+
 def _order_status_from_submission(submission: dict) -> str:
     status = submission.get("status")
     if status == "submitted":

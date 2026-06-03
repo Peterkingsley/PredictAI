@@ -83,6 +83,22 @@ class PolymarketOrderSubmissionService:
             "message": message,
         }
 
+    def fetch_order_status(self, polymarket_order_id: str) -> dict[str, Any]:
+        if not polymarket_order_id:
+            raise OrderSubmissionError("Polymarket order ID is missing.")
+        missing = self._missing_configuration({"outcome_token_id": "not-required"})
+        if missing:
+            raise OrderSubmissionError(f"Missing required Polymarket configuration: {', '.join(missing)}.")
+        try:
+            response = self._client().get_order(polymarket_order_id)
+        except Exception as exc:
+            raise OrderSubmissionError(self._friendly_error_message(exc)) from exc
+        response_dict = self._response_to_dict(response)
+        return {
+            "status": self._normalize_remote_order_status(response_dict),
+            "raw_response": response_dict,
+        }
+
     def _missing_configuration(self, payload: dict[str, Any]) -> list[str]:
         checks = {
             "POLYMARKET_PRIVATE_KEY": self.settings.polymarket_private_key,
@@ -165,6 +181,32 @@ class PolymarketOrderSubmissionService:
         nested = response.get("order") if isinstance(response.get("order"), dict) else {}
         nested_id = nested.get("id") or nested.get("orderID") or nested.get("order_id")
         return str(nested_id) if nested_id else None
+
+    def _normalize_remote_order_status(self, response: dict[str, Any]) -> str:
+        raw_status = str(
+            response.get("status")
+            or response.get("state")
+            or response.get("orderStatus")
+            or response.get("order_status")
+            or ""
+        ).upper()
+        if raw_status in {"MATCHED", "FILLED"}:
+            return "FILLED"
+        if raw_status in {"CANCELED", "CANCELLED"}:
+            return "CANCELLED"
+        if raw_status in {"EXPIRED"}:
+            return "EXPIRED"
+        if raw_status in {"LIVE", "OPEN", "ACTIVE"}:
+            return "OPEN"
+        if raw_status:
+            return raw_status
+        size_matched = float(response.get("size_matched") or response.get("sizeMatched") or response.get("filled_size") or 0)
+        original_size = float(response.get("original_size") or response.get("originalSize") or response.get("size") or 0)
+        if original_size and size_matched >= original_size:
+            return "FILLED"
+        if size_matched > 0:
+            return "PARTIALLY_FILLED"
+        return "UNKNOWN"
 
     def _friendly_error_message(self, exc: Exception) -> str:
         message = str(exc)

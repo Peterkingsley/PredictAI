@@ -35,6 +35,7 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("history", portfolio.history_command))
     app.add_handler(CommandHandler("pnl", portfolio.pnl_command))
     app.add_handler(CommandHandler("orders", orders.orders_command))
+    app.add_handler(CommandHandler("sync_orders", orders.sync_orders_command))
     app.add_handler(CommandHandler("status", status.trading_status_command))
     app.add_handler(MessageHandler(filters.Regex(r"^/position_\d+$"), portfolio.position_command))
     app.add_handler(MessageHandler(filters.Regex(r"^/order_\d+$"), orders.order_command))

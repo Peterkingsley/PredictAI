@@ -26,6 +26,7 @@ HELP_TEXT = (
     "Trading\n"
     "/bet [market id or keyword] - prepare a Polymarket order\n"
     "/orders - signed order attempts\n"
+    "/sync_orders - refresh submitted order statuses\n"
     "/portfolio - view positions\n"
     "/history - past orders\n"
     "/pnl - P&L snapshot\n\n"
