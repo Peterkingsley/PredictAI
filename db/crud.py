@@ -198,6 +198,20 @@ async def list_syncable_trade_orders(session: AsyncSession, telegram_id: int | N
     return list(result.scalars().all())
 
 
+async def list_syncable_trade_orders_with_users(session: AsyncSession, limit: int = 50) -> list[tuple[TradeOrder, int]]:
+    result = await session.execute(
+        select(TradeOrder, User.telegram_id)
+        .join(User, User.id == TradeOrder.user_id)
+        .where(
+            TradeOrder.polymarket_order_id.is_not(None),
+            TradeOrder.status.in_(["SUBMITTED", "OPEN", "PARTIALLY_FILLED"]),
+        )
+        .order_by(TradeOrder.updated_at.asc())
+        .limit(limit)
+    )
+    return [(row[0], row[1]) for row in result.all()]
+
+
 async def update_trade_order_sync(
     session: AsyncSession,
     order: TradeOrder,

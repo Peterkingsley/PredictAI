@@ -25,5 +25,9 @@ celery_app.conf.beat_schedule = {
         "task": "workers.tasks.check_price_alerts",
         "schedule": 60.0,
     },
+    "reconcile-trade-orders": {
+        "task": "workers.tasks.reconcile_trade_orders",
+        "schedule": 90.0,
+    },
 }
 celery_app.conf.timezone = "UTC"
