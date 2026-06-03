@@ -106,12 +106,22 @@ function hasTelegramSendData() {
   return Boolean(window.Telegram?.WebApp?.sendData);
 }
 
+function isTelegramWebApp() {
+  return Boolean(window.Telegram?.WebApp);
+}
+
+function walletPageUrl() {
+  return `${window.location.origin}${window.location.pathname}${window.location.search}`;
+}
+
 function WalletConnectControls({ onWalletDetected, onWalletState }) {
   const { open } = useAppKit();
   const { disconnect } = useDisconnect();
   const { address, isConnected, status } = useAppKitAccount({ namespace: "eip155" });
   const { chainId, switchNetwork } = useAppKitNetwork();
+  const [allowTelegramConnect, setAllowTelegramConnect] = useState(false);
   const isPolygon = Number(chainId) === Number(requiredNetwork.id);
+  const shouldUseExternalBrowser = isTelegramWebApp() && !isConnected && !allowTelegramConnect;
 
   useEffect(() => {
     onWalletState({
@@ -133,6 +143,19 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
     }
   }
 
+  function openWalletPageExternally() {
+    const url = walletPageUrl();
+    if (window.Telegram?.WebApp?.openLink) {
+      window.Telegram.WebApp.openLink(url, { try_instant_view: false });
+      return;
+    }
+    window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  function openWalletModal() {
+    open({ view: isConnected ? "Account" : "Connect", namespace: "eip155" });
+  }
+
   return (
     <div className="wallet-connect">
       <div className="wallet-intro">
@@ -142,17 +165,32 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
         </p>
       </div>
 
-      <div className="wallet-row">
-        <div>
-          <p className="label">Wallet status</p>
-          <p className={isConnected ? "status good" : "status"}>
-            {isConnected ? shortAddress(address) : `Status: ${status || "disconnected"}`}
+      {shouldUseExternalBrowser ? (
+        <div className="browser-route">
+          <p className="label">Best on mobile browser</p>
+          <p className="status">
+            Telegram can block wallet app handoff. Open this same page in your phone browser, then choose your wallet.
           </p>
+          <button className="primary" onClick={openWalletPageExternally}>
+            Open wallet page
+          </button>
+          <button className="secondary" onClick={() => setAllowTelegramConnect(true)}>
+            Try inside Telegram
+          </button>
         </div>
-        <button className="secondary small" onClick={() => open({ view: isConnected ? "Account" : "Connect", namespace: "eip155" })}>
-          {isConnected ? "Manage" : "Choose wallet"}
-        </button>
-      </div>
+      ) : (
+        <div className="wallet-row">
+          <div>
+            <p className="label">Wallet status</p>
+            <p className={isConnected ? "status good" : "status"}>
+              {isConnected ? shortAddress(address) : `Status: ${status || "disconnected"}`}
+            </p>
+          </div>
+          <button className="secondary small" onClick={openWalletModal}>
+            {isConnected ? "Manage" : "Choose wallet"}
+          </button>
+        </div>
+      )}
 
       {isConnected && !isPolygon ? (
         <button className="primary" onClick={enforcePolygon}>
@@ -168,7 +206,7 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
 
       {!isConnected ? (
         <p className="helper-text">
-          The wallet list opens through Reown WalletConnect. If it does not load, check network access and try again.
+          Wallet connection is powered by Reown WalletConnect. PredictAI never receives your private keys.
         </p>
       ) : null}
     </div>
