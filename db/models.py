@@ -51,6 +51,29 @@ class Position(Base):
     closed_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
+class TradeOrder(Base):
+    __tablename__ = "trade_orders"
+    __table_args__ = (UniqueConstraint("signing_intent_id", name="uq_trade_orders_signing_intent"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    signing_intent_id: Mapped[int] = mapped_column(ForeignKey("signing_intents.id", ondelete="CASCADE"), index=True)
+    wallet_address: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    market_id: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    market_question: Mapped[str] = mapped_column(Text, nullable=False)
+    outcome_token_id: Mapped[str | None] = mapped_column(Text)
+    side: Mapped[str] = mapped_column(String(4), nullable=False)
+    order_type: Mapped[str] = mapped_column(String(16), default="BUY")
+    amount_usdc: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
+    shares: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
+    limit_price: Mapped[float] = mapped_column(Numeric(8, 4), nullable=False)
+    status: Mapped[str] = mapped_column(String(32), default="SIGNED")
+    polymarket_order_id: Mapped[str | None] = mapped_column(Text, index=True)
+    submission: Mapped[dict] = mapped_column(JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
 class Alert(Base):
     __tablename__ = "alerts"
 

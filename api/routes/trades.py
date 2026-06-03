@@ -12,9 +12,12 @@ from db.crud import (
     create_signing_intent,
     finalize_signing_intent,
     get_signing_intent,
+    get_trade_order,
     list_open_positions,
     list_positions,
+    list_trade_orders,
     update_signing_intent_submission,
+    upsert_trade_order_from_intent,
 )
 from db.models import SessionLocal
 
@@ -114,6 +117,7 @@ async def complete_intent(intent_id: int, request: CompleteSigningIntentRequest)
             submission,
             status="ORDER_SUBMITTED" if submission["status"] == "submitted" else None,
         )
+        order = await upsert_trade_order_from_intent(session, intent, submission)
     await _notify_telegram_signature_received(intent.telegram_id, intent)
     return {
         "id": intent.id,
@@ -121,6 +125,7 @@ async def complete_intent(intent_id: int, request: CompleteSigningIntentRequest)
         "signature_verified": True,
         "recovered_address": verification["recovered_address"],
         "order_submission": submission,
+        "trade_order_id": order.id if order else None,
         "telegram_notified": bool(get_settings().telegram_bot_token),
     }
 
@@ -182,6 +187,25 @@ async def history(telegram_id: int):
             for position in positions
         ],
     }
+
+
+@router.get("/orders/{telegram_id}")
+async def orders(telegram_id: int, limit: int = 10):
+    async with SessionLocal() as session:
+        trade_orders = await list_trade_orders(session, telegram_id, limit=limit)
+    return {
+        "telegram_id": telegram_id,
+        "orders": [_trade_order_dict(order) for order in trade_orders],
+    }
+
+
+@router.get("/orders/{telegram_id}/{order_id}")
+async def order_detail(telegram_id: int, order_id: int):
+    async with SessionLocal() as session:
+        order = await get_trade_order(session, telegram_id, order_id)
+    if not order:
+        return {"status": "not_found"}
+    return _trade_order_dict(order)
 
 
 async def _notify_telegram_transaction(telegram_id: int, intent_id: int, request: TransactionFinalizedRequest) -> None:
@@ -282,3 +306,24 @@ def _submit_verified_order_intent(intent) -> dict:
             "order_id": None,
             "raw_response": None,
         }
+
+
+def _trade_order_dict(order) -> dict:
+    return {
+        "id": order.id,
+        "signing_intent_id": order.signing_intent_id,
+        "wallet_address": order.wallet_address,
+        "market_id": order.market_id,
+        "market_question": order.market_question,
+        "outcome_token_id": order.outcome_token_id,
+        "side": order.side,
+        "order_type": order.order_type,
+        "amount_usdc": float(order.amount_usdc),
+        "shares": float(order.shares),
+        "limit_price": float(order.limit_price),
+        "status": order.status,
+        "polymarket_order_id": order.polymarket_order_id,
+        "submission": order.submission,
+        "created_at": order.created_at.isoformat() if order.created_at else None,
+        "updated_at": order.updated_at.isoformat() if order.updated_at else None,
+    }
