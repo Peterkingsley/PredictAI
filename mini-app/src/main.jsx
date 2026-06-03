@@ -103,11 +103,12 @@ function formatUsdcUnits(value) {
 }
 
 function hasTelegramSendData() {
-  return Boolean(window.Telegram?.WebApp?.sendData);
+  return isTelegramWebApp() && Boolean(window.Telegram?.WebApp?.sendData);
 }
 
 function isTelegramWebApp() {
-  return Boolean(window.Telegram?.WebApp);
+  const webApp = window.Telegram?.WebApp;
+  return Boolean(webApp?.initData || window.location.hash.includes("tgWebAppData"));
 }
 
 function walletPageUrl() {
@@ -534,8 +535,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    window.Telegram?.WebApp?.ready();
-    window.Telegram?.WebApp?.expand();
+    if (isTelegramWebApp()) {
+      window.Telegram?.WebApp?.ready();
+      window.Telegram?.WebApp?.expand();
+    }
   }, []);
 
   useEffect(() => {
