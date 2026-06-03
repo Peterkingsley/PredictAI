@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlalchemy import select, update
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from db.models import Alert, Position, SigningIntent, TradeOrder, User, Wallet
@@ -17,6 +17,53 @@ async def get_or_create_user(session: AsyncSession, telegram_id: int, username: 
     await session.commit()
     await session.refresh(user)
     return user
+
+
+async def get_user_by_telegram_id(session: AsyncSession, telegram_id: int) -> User | None:
+    result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+    return result.scalar_one_or_none()
+
+
+async def set_delegated_admin(session: AsyncSession, telegram_id: int, enabled: bool, granted_by: int | None = None) -> User:
+    user = await get_or_create_user(session, telegram_id=telegram_id)
+    user.settings = {
+        **(user.settings or {}),
+        "is_admin": enabled,
+        "admin_granted_by": granted_by,
+        "admin_updated_at": datetime.utcnow().isoformat(),
+    }
+    await session.commit()
+    await session.refresh(user)
+    return user
+
+
+async def list_delegated_admins(session: AsyncSession) -> list[User]:
+    result = await session.execute(select(User))
+    return [user for user in result.scalars().all() if (user.settings or {}).get("is_admin")]
+
+
+async def admin_health_counts(session: AsyncSession) -> dict:
+    retryable_statuses = ["SIGNED", "SIGNED_PENDING_SUBMISSION", "FAILED", "CONFIGURATION_MISSING"]
+    syncable_statuses = ["SUBMITTED", "OPEN", "PARTIALLY_FILLED"]
+    status_rows = await session.execute(select(TradeOrder.status, func.count()).group_by(TradeOrder.status))
+    status_counts = {status: count for status, count in status_rows.all()}
+    pending_retries = await session.execute(
+        select(func.count()).select_from(TradeOrder).where(TradeOrder.status.in_(retryable_statuses))
+    )
+    syncable_orders = await session.execute(
+        select(func.count())
+        .select_from(TradeOrder)
+        .where(TradeOrder.polymarket_order_id.is_not(None), TradeOrder.status.in_(syncable_statuses))
+    )
+    alerts = await session.execute(select(func.count()).select_from(Alert).where(Alert.triggered == False))
+    users = await session.execute(select(func.count()).select_from(User))
+    return {
+        "users": users.scalar_one(),
+        "active_alerts": alerts.scalar_one(),
+        "pending_retries": pending_retries.scalar_one(),
+        "syncable_orders": syncable_orders.scalar_one(),
+        "order_status_counts": status_counts,
+    }
 
 
 async def add_wallet(session: AsyncSession, telegram_id: int, address: str, username: str | None = None) -> Wallet:

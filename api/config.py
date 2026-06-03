@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     cors_origins: str = ""
     gemini_api_key: str = ""
     environment: str = "development"
+    admin_telegram_ids: str = ""
     min_bet_usdc: float = 1.0
     signature_timeout: int = 120
 

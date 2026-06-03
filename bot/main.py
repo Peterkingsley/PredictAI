@@ -3,7 +3,7 @@ import logging
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from api.config import get_settings
-from bot.handlers import alerts, analyze, markets, onboarding, orders, portfolio, status, trade, wallets
+from bot.handlers import admin, alerts, analyze, markets, onboarding, orders, portfolio, status, trade, wallets
 from db.models import init_db
 
 logging.basicConfig(
@@ -39,6 +39,10 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("retry_order", orders.retry_order_command))
     app.add_handler(CommandHandler("cancel_order", orders.cancel_order_command))
     app.add_handler(CommandHandler("status", status.trading_status_command))
+    app.add_handler(CommandHandler("admin_status", admin.admin_status_command))
+    app.add_handler(CommandHandler("admin_grant", admin.admin_grant_command))
+    app.add_handler(CommandHandler("admin_revoke", admin.admin_revoke_command))
+    app.add_handler(CommandHandler("admin_list", admin.admin_list_command))
     app.add_handler(MessageHandler(filters.Regex(r"^/position_\d+$"), portfolio.position_command))
     app.add_handler(MessageHandler(filters.Regex(r"^/order_\d+$"), orders.order_command))
     app.add_handler(CommandHandler("bet", trade.bet_command))
