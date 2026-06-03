@@ -57,6 +57,11 @@ async def build_order(request: BuildOrderRequest):
     }
 
 
+@router.get("/readiness")
+async def trading_readiness():
+    return PolymarketOrderSubmissionService().readiness_report()
+
+
 @router.post("/signing-intents")
 async def signing_intent(request: SigningIntentRequest):
     async with SessionLocal() as session:

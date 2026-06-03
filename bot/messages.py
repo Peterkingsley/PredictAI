@@ -28,6 +28,8 @@ HELP_TEXT = (
     "/portfolio - view positions\n"
     "/history - past orders\n"
     "/pnl - P&L snapshot\n\n"
+    "Status\n"
+    "/status - trading readiness\n\n"
     "Account\n"
     "/connect - connect wallet\n"
     "/wallets - list wallets\n"

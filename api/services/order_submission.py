@@ -61,6 +61,28 @@ class PolymarketOrderSubmissionService:
             raw_response=response_dict,
         )
 
+    def readiness_report(self) -> dict[str, Any]:
+        missing = self._missing_configuration({})
+        missing = [item for item in missing if item != "outcome_token_id"]
+        live_enabled = bool(self.settings.polymarket_order_submission_enabled)
+        ready = live_enabled and not missing
+        if ready:
+            message = "Live Polymarket submission is enabled and credentials are configured."
+        elif missing:
+            message = f"Live submission is not ready. Missing: {', '.join(missing)}."
+        else:
+            message = "Live submission is configured but paused by POLYMARKET_ORDER_SUBMISSION_ENABLED=false."
+        return {
+            "ready": ready,
+            "live_submission_enabled": live_enabled,
+            "missing_configuration": missing,
+            "host": self.settings.polymarket_host,
+            "chain_id": self.settings.polygon_chain_id,
+            "signature_type": self.settings.polymarket_signature_type,
+            "has_funder_address": bool(self.settings.polymarket_funder_address),
+            "message": message,
+        }
+
     def _missing_configuration(self, payload: dict[str, Any]) -> list[str]:
         checks = {
             "POLYMARKET_PRIVATE_KEY": self.settings.polymarket_private_key,
