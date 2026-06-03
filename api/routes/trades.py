@@ -19,6 +19,7 @@ from db.crud import (
     list_trade_orders,
     update_trade_order_sync,
     update_signing_intent_submission,
+    upsert_position_from_trade_order,
     upsert_trade_order_from_intent,
 )
 from db.models import SessionLocal
@@ -217,6 +218,7 @@ async def sync_orders(telegram_id: int, limit: int = 25):
                     remote_status=remote["status"],
                     remote_response=remote["raw_response"],
                 )
+                await upsert_position_from_trade_order(session, updated)
                 synced.append(_trade_order_dict(updated))
             except OrderSubmissionError as exc:
                 errors.append({"id": order.id, "message": str(exc)})

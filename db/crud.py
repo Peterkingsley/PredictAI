@@ -81,7 +81,9 @@ async def list_open_positions(session: AsyncSession, telegram_id: int) -> list[P
     if not user:
         return []
     result = await session.execute(
-        select(Position).where(Position.user_id == user.id, Position.status == "OPEN").order_by(Position.opened_at.desc())
+        select(Position)
+        .where(Position.user_id == user.id, Position.status.in_(["OPEN", "PARTIAL"]))
+        .order_by(Position.opened_at.desc())
     )
     return list(result.scalars().all())
 
@@ -195,6 +197,63 @@ async def update_trade_order_sync(
     await session.commit()
     await session.refresh(order)
     return order
+
+
+async def upsert_position_from_trade_order(session: AsyncSession, order: TradeOrder) -> Position | None:
+    if order.status not in {"FILLED", "PARTIALLY_FILLED"}:
+        return None
+
+    response = (order.submission or {}).get("remote_response") or {}
+    filled_shares = _filled_size_from_response(response, fallback=float(order.shares))
+    if filled_shares <= 0:
+        return None
+
+    entry_price = _average_price_from_response(response, fallback=float(order.limit_price))
+    amount = filled_shares * entry_price
+    result = await session.execute(
+        select(Position).where(Position.user_id == order.user_id, Position.tx_hash == f"order:{order.id}")
+    )
+    position = result.scalar_one_or_none()
+    if not position:
+        position = Position(
+            user_id=order.user_id,
+            wallet_address=order.wallet_address,
+            market_id=order.market_id,
+            market_question=order.market_question,
+            side=order.side,
+            amount_usdc=amount,
+            shares=filled_shares,
+            entry_price=entry_price,
+            current_price=entry_price,
+            status="OPEN" if order.status == "FILLED" else "PARTIAL",
+            tx_hash=f"order:{order.id}",
+        )
+        session.add(position)
+    else:
+        position.amount_usdc = amount
+        position.shares = filled_shares
+        position.entry_price = entry_price
+        position.current_price = entry_price
+        position.status = "OPEN" if order.status == "FILLED" else "PARTIAL"
+    await session.commit()
+    await session.refresh(position)
+    return position
+
+
+def _filled_size_from_response(response: dict, fallback: float) -> float:
+    for key in ("size_matched", "sizeMatched", "filled_size", "filledSize", "matched_size", "matchedSize"):
+        value = response.get(key)
+        if value is not None:
+            return float(value)
+    return fallback
+
+
+def _average_price_from_response(response: dict, fallback: float) -> float:
+    for key in ("average_price", "averagePrice", "avg_price", "avgPrice", "price"):
+        value = response.get(key)
+        if value is not None:
+            return float(value)
+    return fallback
 
 
 def _order_status_from_submission(submission: dict) -> str:

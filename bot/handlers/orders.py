@@ -3,7 +3,13 @@ from telegram.ext import ContextTypes
 
 from api.services.wallets import short_address
 from api.services.order_submission import OrderSubmissionError, PolymarketOrderSubmissionService
-from db.crud import get_trade_order, list_syncable_trade_orders, list_trade_orders, update_trade_order_sync
+from db.crud import (
+    get_trade_order,
+    list_syncable_trade_orders,
+    list_trade_orders,
+    update_trade_order_sync,
+    upsert_position_from_trade_order,
+)
 from db.models import SessionLocal
 
 
@@ -59,7 +65,8 @@ async def sync_orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         for order in orders:
             try:
                 remote = service.fetch_order_status(order.polymarket_order_id)
-                await update_trade_order_sync(session, order, remote["status"], remote["raw_response"])
+                updated = await update_trade_order_sync(session, order, remote["status"], remote["raw_response"])
+                await upsert_position_from_trade_order(session, updated)
                 synced += 1
             except OrderSubmissionError as exc:
                 errors.append(f"#{order.id}: {exc}")
