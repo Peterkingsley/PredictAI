@@ -27,6 +27,7 @@ HELP_TEXT = (
     "/bet [market id or keyword] - prepare a Polymarket order\n"
     "/orders - order dashboard\n"
     "/sync_orders - reconcile submitted/open order statuses\n"
+    "/retry_order [id] - retry a signed failed/queued order\n"
     "/cancel_order [id] - cancel an open order\n"
     "/portfolio - view positions\n"
     "/history - past orders\n"

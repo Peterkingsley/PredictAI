@@ -4,14 +4,18 @@ from telegram.ext import ContextTypes
 from api.services.wallets import short_address
 from api.services.order_submission import OrderSubmissionError, PolymarketOrderSubmissionService
 from db.crud import (
+    get_signing_intent_for_trade_order,
     get_trade_order,
     list_syncable_trade_orders,
     list_trade_orders,
+    update_trade_order_retry,
     update_trade_order_sync,
     update_trade_order_cancellation,
     upsert_position_from_trade_order,
 )
 from db.models import SessionLocal
+
+RETRYABLE_ORDER_STATUSES = {"SIGNED", "SIGNED_PENDING_SUBMISSION", "FAILED", "CONFIGURATION_MISSING"}
 
 
 async def orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -140,6 +144,54 @@ async def cancel_order_command(update: Update, context: ContextTypes.DEFAULT_TYP
     )
 
 
+async def retry_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.args:
+        await update.effective_message.reply_text("Usage: /retry_order [order id]")
+        return
+    try:
+        order_id = int(context.args[0])
+    except ValueError:
+        await update.effective_message.reply_text("Order ID must be a number.")
+        return
+
+    service = PolymarketOrderSubmissionService()
+    async with SessionLocal() as session:
+        result = await get_signing_intent_for_trade_order(session, update.effective_user.id, order_id)
+        if not result:
+            await update.effective_message.reply_text("Order not found.")
+            return
+        order, intent = result
+        if order.status not in RETRYABLE_ORDER_STATUSES:
+            await update.effective_message.reply_text(
+                f"Order #{order.id} is not retryable because status is {_status_label(order.status)}.\n"
+                f"Next: {_next_action(order)}"
+            )
+            return
+        if not intent.signature:
+            await update.effective_message.reply_text("This order has no verified wallet signature yet, so it cannot be retried.")
+            return
+        try:
+            submission = service.submit_verified_intent(intent).as_dict()
+            updated = await update_trade_order_retry(session, intent, order, submission)
+        except OrderSubmissionError as exc:
+            await update.effective_message.reply_text(
+                "Retry failed\n"
+                "------------\n"
+                f"{exc}\n\n"
+                "Run /status to verify live submission settings, then retry again."
+            )
+            return
+
+    await update.effective_message.reply_text(
+        "Order retry complete\n"
+        "--------------------\n"
+        f"Order #{updated.id}\n"
+        f"Status: {_status_label(updated.status)}\n"
+        f"Polymarket order: {updated.polymarket_order_id or '-'}\n\n"
+        f"Next: {_next_action(updated)}"
+    )
+
+
 def _format_order_detail(order) -> str:
     submission = order.submission or {}
     message = submission.get("message") or "-"
@@ -176,7 +228,16 @@ def _order_status_counts(orders) -> dict[str, int]:
 def _format_counts(counts: dict[str, int]) -> str:
     if not counts:
         return "No orders yet."
-    ordered_statuses = ["SUBMITTED", "OPEN", "PARTIALLY_FILLED", "FILLED", "CANCELLED", "FAILED", "SIGNED_PENDING_SUBMISSION"]
+    ordered_statuses = [
+        "SIGNED_PENDING_SUBMISSION",
+        "CONFIGURATION_MISSING",
+        "FAILED",
+        "SUBMITTED",
+        "OPEN",
+        "PARTIALLY_FILLED",
+        "FILLED",
+        "CANCELLED",
+    ]
     parts = [f"{_status_label(status)}: {counts[status]}" for status in ordered_statuses if counts.get(status)]
     parts.extend(f"{_status_label(status)}: {count}" for status, count in counts.items() if status not in ordered_statuses)
     return " | ".join(parts)
@@ -201,14 +262,14 @@ def _status_label(status: str) -> str:
 def _next_action(order) -> str:
     actions = {
         "SIGNED": "Waiting for backend submission.",
-        "SIGNED_PENDING_SUBMISSION": "Enable live submission, then resubmit/retry.",
+        "SIGNED_PENDING_SUBMISSION": f"Enable live submission, then use /retry_order {order.id}.",
         "SUBMITTED": "Run /sync_orders to confirm whether it is open or filled.",
         "OPEN": f"Still live. Use /cancel_order {order.id} if you want to cancel.",
         "PARTIALLY_FILLED": f"Partially filled. Use /cancel_order {order.id} to cancel the remaining size.",
         "FILLED": "Filled and reflected in portfolio after sync.",
         "CANCELLED": "Cancelled. No further action needed.",
-        "FAILED": "Review the failure message, then try a new order.",
-        "CONFIGURATION_MISSING": "Run /status and complete missing live-trading configuration.",
+        "FAILED": f"Review the failure message, then use /retry_order {order.id} after fixing it.",
+        "CONFIGURATION_MISSING": f"Run /status, complete missing config, then use /retry_order {order.id}.",
         "EXPIRED": "Expired. Try a new order if you still want this position.",
     }
     return actions.get(order.status, "Use /sync_orders for the latest status.")

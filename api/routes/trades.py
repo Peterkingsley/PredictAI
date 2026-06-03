@@ -11,6 +11,7 @@ from db.crud import (
     complete_signing_intent,
     create_signing_intent,
     finalize_signing_intent,
+    get_signing_intent_for_trade_order,
     get_signing_intent,
     get_trade_order,
     list_syncable_trade_orders,
@@ -18,6 +19,7 @@ from db.crud import (
     list_positions,
     list_trade_orders,
     update_trade_order_cancellation,
+    update_trade_order_retry,
     update_trade_order_sync,
     update_signing_intent_submission,
     upsert_position_from_trade_order,
@@ -26,6 +28,7 @@ from db.crud import (
 from db.models import SessionLocal
 
 router = APIRouter()
+RETRYABLE_ORDER_STATUSES = {"SIGNED", "SIGNED_PENDING_SUBMISSION", "FAILED", "CONFIGURATION_MISSING"}
 
 
 class BuildOrderRequest(BaseModel):
@@ -251,6 +254,26 @@ async def cancel_order(telegram_id: int, order_id: int):
     return {"status": "cancelled", "order": _trade_order_dict(updated)}
 
 
+@router.post("/orders/{telegram_id}/{order_id}/retry")
+async def retry_order(telegram_id: int, order_id: int):
+    async with SessionLocal() as session:
+        result = await get_signing_intent_for_trade_order(session, telegram_id, order_id)
+        if not result:
+            return {"status": "not_found"}
+        order, intent = result
+        if order.status not in RETRYABLE_ORDER_STATUSES:
+            return {"status": "not_retryable", "order": _trade_order_dict(order)}
+        if not intent.signature:
+            return {"status": "signature_missing", "order": _trade_order_dict(order)}
+        submission = _submit_verified_order_intent(intent)
+        updated = await update_trade_order_retry(session, intent, order, submission)
+    return {
+        "status": "retried",
+        "order_submission": submission,
+        "order": _trade_order_dict(updated),
+    }
+
+
 @router.get("/orders/{telegram_id}/{order_id}")
 async def order_detail(telegram_id: int, order_id: int):
     async with SessionLocal() as session:
@@ -410,4 +433,5 @@ def _trade_order_dict(order) -> dict:
         "submission": order.submission,
         "created_at": order.created_at.isoformat() if order.created_at else None,
         "updated_at": order.updated_at.isoformat() if order.updated_at else None,
+        "retryable": order.status in RETRYABLE_ORDER_STATUSES,
     }

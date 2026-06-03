@@ -165,6 +165,24 @@ async def get_trade_order(session: AsyncSession, telegram_id: int, order_id: int
     return result.scalar_one_or_none()
 
 
+async def get_signing_intent_for_trade_order(
+    session: AsyncSession,
+    telegram_id: int,
+    order_id: int,
+) -> tuple[TradeOrder, SigningIntent] | None:
+    result = await session.execute(select(User).where(User.telegram_id == telegram_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        return None
+    result = await session.execute(
+        select(TradeOrder, SigningIntent)
+        .join(SigningIntent, SigningIntent.id == TradeOrder.signing_intent_id)
+        .where(TradeOrder.user_id == user.id, TradeOrder.id == order_id)
+    )
+    row = result.one_or_none()
+    return (row[0], row[1]) if row else None
+
+
 async def list_syncable_trade_orders(session: AsyncSession, telegram_id: int | None = None, limit: int = 25) -> list[TradeOrder]:
     query = select(TradeOrder).where(
         TradeOrder.polymarket_order_id.is_not(None),
@@ -211,6 +229,40 @@ async def update_trade_order_cancellation(
         "cancelled_at": datetime.utcnow().isoformat(),
     }
     order.updated_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(order)
+    return order
+
+
+async def update_trade_order_retry(
+    session: AsyncSession,
+    intent: SigningIntent,
+    order: TradeOrder,
+    submission: dict,
+) -> TradeOrder:
+    retry_history = list((order.submission or {}).get("retry_history") or [])
+    retry_history.append(
+        {
+            "previous_status": order.status,
+            "previous_submission": order.submission or {},
+            "retried_at": datetime.utcnow().isoformat(),
+        }
+    )
+    order.status = _order_status_from_submission(submission)
+    order.polymarket_order_id = submission.get("order_id")
+    order.submission = {
+        **submission,
+        "retry_history": retry_history[-10:],
+    }
+    order.updated_at = datetime.utcnow()
+    intent.payload = {
+        **(intent.payload or {}),
+        "order_submission": submission,
+        "retry_count": len(retry_history),
+        "last_retry_at": datetime.utcnow().isoformat(),
+    }
+    if submission.get("status") == "submitted":
+        intent.status = "ORDER_SUBMITTED"
     await session.commit()
     await session.refresh(order)
     return order
