@@ -129,8 +129,33 @@ function walletBrowserLinks() {
   return {
     metamask: `https://metamask.app.link/dapp/${urlWithoutProtocol}`,
     trust: `https://link.trustwallet.com/open_url?coin_id=966&url=${encodeURIComponent(url)}`,
+    coinbase: `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(url)}`,
+    phantom: `https://phantom.app/ul/browse/${encodeURIComponent(url)}?ref=${encodeURIComponent(window.location.origin)}`,
   };
 }
+
+const MORE_WALLETS = [
+  { key: "coinbase", label: "Coinbase" },
+  { key: "phantom", label: "Phantom" },
+  { key: "rainbow", label: "Rainbow" },
+  { key: "safepal", label: "SafePal" },
+  { key: "okx", label: "OKX" },
+  { key: "binance", label: "Binance Web3" },
+  { key: "rabby", label: "Rabby" },
+  { key: "bitget", label: "Bitget" },
+  { key: "tokenpocket", label: "TokenPocket" },
+  { key: "imtoken", label: "imToken" },
+  { key: "mathwallet", label: "MathWallet" },
+  { key: "zerion", label: "Zerion" },
+  { key: "exodus", label: "Exodus" },
+  { key: "ledger", label: "Ledger Live" },
+  { key: "cryptocom", label: "Crypto.com DeFi" },
+  { key: "blockchain", label: "Blockchain.com" },
+  { key: "brave", label: "Brave Wallet" },
+  { key: "oneinch", label: "1inch" },
+  { key: "uniswap", label: "Uniswap Wallet" },
+  { key: "backpack", label: "Backpack" },
+];
 
 function WalletConnectControls({ onWalletDetected, onWalletState }) {
   const { open } = useAppKit();
@@ -139,6 +164,7 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
   const { chainId, switchNetwork } = useAppKitNetwork();
   const [allowWalletConnect, setAllowWalletConnect] = useState(false);
   const [copyStatus, setCopyStatus] = useState("");
+  const [showMoreWallets, setShowMoreWallets] = useState(false);
   const isPolygon = Number(chainId) === Number(requiredNetwork.id);
   const shouldUseWalletBrowser = isMobileBrowser() && !hasInjectedWallet() && !isConnected && !allowWalletConnect;
 
@@ -165,6 +191,10 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
   function openWalletBrowser(walletName) {
     const links = walletBrowserLinks();
     const url = links[walletName] || walletPageUrl();
+    if (!links[walletName]) {
+      copyWalletPageLink(walletName);
+      return;
+    }
     if (isTelegramWebApp() && window.Telegram?.WebApp?.openLink) {
       window.Telegram.WebApp.openLink(url, { try_instant_view: false });
       return;
@@ -172,10 +202,12 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
     window.open(url, "_blank", "noopener,noreferrer");
   }
 
-  async function copyWalletPageLink() {
+  async function copyWalletPageLink(walletName = "") {
+    const wallet = MORE_WALLETS.find((item) => item.key === walletName);
+    const label = wallet?.label || "your wallet";
     try {
       await navigator.clipboard.writeText(walletPageUrl());
-      setCopyStatus("Link copied. Paste it into your wallet browser.");
+      setCopyStatus(`Link copied. Paste it into ${label}'s browser.`);
     } catch {
       setCopyStatus("Copy blocked. Use your browser share button to copy this page link.");
     }
@@ -208,6 +240,18 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
               Trust Wallet
             </button>
           </div>
+          <button className="secondary" onClick={() => setShowMoreWallets((value) => !value)}>
+            {showMoreWallets ? "Hide more wallets" : "More wallets"}
+          </button>
+          {showMoreWallets ? (
+            <div className="more-wallets">
+              {MORE_WALLETS.map((wallet) => (
+                <button className="secondary compact-wallet" key={wallet.key} onClick={() => openWalletBrowser(wallet.key)}>
+                  {wallet.label}
+                </button>
+              ))}
+            </div>
+          ) : null}
           <button className="secondary" onClick={copyWalletPageLink}>
             Copy page link
           </button>
