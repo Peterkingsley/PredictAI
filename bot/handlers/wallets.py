@@ -5,7 +5,7 @@ from telegram.ext import ContextTypes
 
 from api.config import get_settings
 from api.services.wallets import get_usdc_balance, is_evm_address, short_address
-from bot.keyboards import connect_wallet_keyboard, wallet_actions_keyboard
+from bot.keyboards import connect_wallet_keyboard, home_keyboard, wallet_actions_keyboard
 from db.crud import add_wallet, disconnect_wallets, list_wallets
 from db.models import SessionLocal
 
@@ -14,7 +14,8 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     settings = get_settings()
     if not settings.mini_app_url:
         await update.effective_message.reply_text(
-            "Wallet connect is almost ready. Set MINI_APP_URL in Render, then redeploy the bot worker."
+            "Wallet connect is almost ready. Set MINI_APP_URL in Render, then redeploy the bot worker.",
+            reply_markup=home_keyboard(),
         )
         return
 
@@ -57,9 +58,12 @@ async def disconnect_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     async with SessionLocal() as session:
         count = await disconnect_wallets(session, update.effective_user.id)
     if count == 0:
-        await update.effective_message.reply_text("No wallets were connected.")
+        await update.effective_message.reply_text("No wallets were connected.", reply_markup=wallet_actions_keyboard())
         return
-    await update.effective_message.reply_text("Wallet disconnected. Your open positions are not affected.")
+    await update.effective_message.reply_text(
+        "Wallet disconnected. Your open positions are not affected.",
+        reply_markup=wallet_actions_keyboard(),
+    )
 
 
 async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -67,16 +71,25 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
     try:
         data = json.loads(raw)
     except json.JSONDecodeError:
-        await update.effective_message.reply_text("Wallet connect data was invalid. Please try /connect again.")
+        await update.effective_message.reply_text(
+            "Wallet connect data was invalid. Please try again.",
+            reply_markup=connect_wallet_keyboard(update.effective_user.id),
+        )
         return
 
     if data.get("type") != "wallet_connected":
-        await update.effective_message.reply_text("Unknown wallet connect response. Please try /connect again.")
+        await update.effective_message.reply_text(
+            "Unknown wallet connect response. Please try again.",
+            reply_markup=connect_wallet_keyboard(update.effective_user.id),
+        )
         return
 
     address = str(data.get("address", "")).strip()
     if not is_evm_address(address):
-        await update.effective_message.reply_text("That does not look like a valid EVM wallet address.")
+        await update.effective_message.reply_text(
+            "That does not look like a valid EVM wallet address.",
+            reply_markup=connect_wallet_keyboard(update.effective_user.id),
+        )
         return
 
     connection_signature = str(data.get("connection_signature", "")).strip()

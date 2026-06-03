@@ -3,7 +3,7 @@ from telegram.ext import ContextTypes
 
 from api.services.order_submission import PolymarketOrderSubmissionService
 from api.services.wallets import short_address
-from bot.keyboards import dashboard_keyboard, help_menu_keyboard, help_section_keyboard, start_keyboard
+from bot.keyboards import dashboard_keyboard, help_menu_keyboard, help_section_keyboard, recovery_keyboard, start_keyboard
 from bot.messages import HELP_SECTIONS, HELP_TEXT, START_TEXT
 from db.crud import get_active_wallet, list_alerts, list_open_positions, list_trade_orders
 from db.models import SessionLocal
@@ -82,7 +82,10 @@ async def generic_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
 
         await connect_command(update, context)
         return
-    await query.edit_message_text("This flow is coming next. Try /markets or /analyze for live market data.")
+    await query.edit_message_text(
+        "This flow is coming next. Try Markets or Search for live market data.",
+        reply_markup=recovery_keyboard(),
+    )
 
 
 async def _show_home(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

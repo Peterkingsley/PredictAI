@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 
 from api.config import get_settings
 from api.services.order_submission import PolymarketOrderSubmissionService
+from bot.keyboards import home_keyboard
 from db.crud import admin_health_counts, get_user_by_telegram_id, list_delegated_admins, set_delegated_admin
 from db.models import SessionLocal
 
@@ -43,7 +44,7 @@ async def admin_status_command(update: Update, context: ContextTypes.DEFAULT_TYP
         "/admin_revoke [telegram_id]",
         "/admin_list",
     ]
-    await update.effective_message.reply_text("\n".join(lines))
+    await update.effective_message.reply_text("\n".join(lines), reply_markup=home_keyboard())
 
 
 async def admin_grant_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -52,11 +53,11 @@ async def admin_grant_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
     target = _target_telegram_id(context)
     if not target:
-        await update.effective_message.reply_text("Usage: /admin_grant [telegram_id]")
+        await update.effective_message.reply_text("Usage: /admin_grant [telegram_id]", reply_markup=home_keyboard())
         return
     async with SessionLocal() as session:
         await set_delegated_admin(session, target, True, granted_by=update.effective_user.id)
-    await update.effective_message.reply_text(f"Admin access granted to Telegram ID {target}.")
+    await update.effective_message.reply_text(f"Admin access granted to Telegram ID {target}.", reply_markup=home_keyboard())
 
 
 async def admin_revoke_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -65,14 +66,17 @@ async def admin_revoke_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     target = _target_telegram_id(context)
     if not target:
-        await update.effective_message.reply_text("Usage: /admin_revoke [telegram_id]")
+        await update.effective_message.reply_text("Usage: /admin_revoke [telegram_id]", reply_markup=home_keyboard())
         return
     if target in _root_admin_ids():
-        await update.effective_message.reply_text("Root admins come from ADMIN_TELEGRAM_IDS and cannot be revoked from Telegram.")
+        await update.effective_message.reply_text(
+            "Root admins come from ADMIN_TELEGRAM_IDS and cannot be revoked from Telegram.",
+            reply_markup=home_keyboard(),
+        )
         return
     async with SessionLocal() as session:
         await set_delegated_admin(session, target, False, granted_by=update.effective_user.id)
-    await update.effective_message.reply_text(f"Admin access revoked for Telegram ID {target}.")
+    await update.effective_message.reply_text(f"Admin access revoked for Telegram ID {target}.", reply_markup=home_keyboard())
 
 
 async def admin_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -87,7 +91,7 @@ async def admin_list_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
         lines.extend(f"- {user.telegram_id}" for user in delegated_admins)
     else:
         lines.append("Delegated: none")
-    await update.effective_message.reply_text("\n".join(lines))
+    await update.effective_message.reply_text("\n".join(lines), reply_markup=home_keyboard())
 
 
 async def _is_admin(telegram_id: int) -> bool:
@@ -99,7 +103,7 @@ async def _is_admin(telegram_id: int) -> bool:
 
 
 async def _deny(update: Update) -> None:
-    await update.effective_message.reply_text("Admin access required.")
+    await update.effective_message.reply_text("Admin access required.", reply_markup=home_keyboard())
 
 
 def _root_admin_ids() -> set[int]:

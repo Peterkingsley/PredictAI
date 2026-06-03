@@ -13,7 +13,14 @@ from api.config import get_settings
 from api.services.order_submission import PolymarketOrderSubmissionService
 from api.services.polymarket import PolymarketService
 from api.services.wallets import get_usdc_balance, is_evm_address, short_address
-from bot.keyboards import bet_amount_keyboard, bet_blocked_keyboard, bet_confirm_keyboard, bet_side_keyboard
+from bot.keyboards import (
+    bet_amount_keyboard,
+    bet_blocked_keyboard,
+    bet_confirm_keyboard,
+    bet_side_keyboard,
+    connect_wallet_keyboard,
+    recovery_keyboard,
+)
 from db.crud import create_signing_intent, get_active_wallet, update_signing_intent_payload
 from db.models import SessionLocal
 
@@ -32,7 +39,12 @@ async def bet_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         market = context.user_data.get("selected_market")
 
     if not market:
-        await update.effective_message.reply_text("Usage: /bet [market id or keyword]\nTry /markets or /search first.")
+        await update.effective_message.reply_text(
+            "Prepare a bet\n"
+            "-------------\n"
+            "Open a market and tap Bet, or type /bet followed by a market keyword.",
+            reply_markup=recovery_keyboard(),
+        )
         return
 
     await start_bet_flow(update, context, market)
@@ -45,7 +57,8 @@ async def start_bet_flow(update: Update, context: ContextTypes.DEFAULT_TYPE, mar
     if not wallet:
         await _reply_or_edit(
             update,
-            "Wallet needed\nConnect a wallet before preparing an order.\n\nUse /connect, then try again.",
+            "Wallet needed\nConnect a wallet before preparing an order.",
+            reply_markup=connect_wallet_keyboard(update.effective_user.id),
         )
         return
 
@@ -63,7 +76,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     action = query.data
     flow = context.user_data.get("bet_flow")
     if not flow:
-        await query.edit_message_text("Bet flow expired. Use /bet [market] to start again.")
+        await query.edit_message_text("Bet flow expired. Open a market and tap Bet again.", reply_markup=recovery_keyboard())
         return
 
     if action == "bet_back_side":
@@ -107,14 +120,17 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if action == "bet_cancel":
         context.user_data.pop("bet_flow", None)
-        await query.edit_message_text("Bet cancelled.")
+        await query.edit_message_text("Bet cancelled.", reply_markup=recovery_keyboard())
         return
 
     if action == "bet_confirm":
         market = flow["market"]
         settings = get_settings()
         if not settings.mini_app_url:
-            await query.edit_message_text("Signing is almost ready. Set MINI_APP_URL, then try again.")
+            await query.edit_message_text(
+                "Signing is almost ready. Set MINI_APP_URL, then try again.",
+                reply_markup=recovery_keyboard(),
+            )
             return
         validation_errors = await _pre_trade_validation(
             market=market,

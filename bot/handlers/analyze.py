@@ -3,7 +3,7 @@ from telegram.ext import ContextTypes
 
 from api.services.ai_analysis import AIAnalysisService
 from api.services.polymarket import PolymarketService
-from bot.keyboards import analysis_result_keyboard
+from bot.keyboards import analysis_result_keyboard, recovery_keyboard
 
 market_service = PolymarketService()
 ai_service = AIAnalysisService()
@@ -12,7 +12,12 @@ ai_service = AIAnalysisService()
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     target = " ".join(context.args) if context.args else ""
     if not target:
-        await update.effective_message.reply_text("Usage: /analyze [market id or keyword]")
+        await update.effective_message.reply_text(
+            "Analyze a market\n"
+            "----------------\n"
+            "Open a market and tap Analyze, or type /analyze followed by a keyword.",
+            reply_markup=recovery_keyboard(),
+        )
         return
 
     market = context.user_data.get("selected_market") if target == "selected" else await market_service.get_market(target)
@@ -21,7 +26,10 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         market = results[0] if results else None
 
     if not market:
-        await update.effective_message.reply_text(f'No market found for "{target}".')
+        await update.effective_message.reply_text(
+            f'No market found for "{target}".',
+            reply_markup=recovery_keyboard(),
+        )
         return
 
     context.user_data["selected_market"] = market

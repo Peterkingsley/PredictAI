@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.services.polymarket import PolymarketService
-from bot.keyboards import alert_result_keyboard, alert_threshold_keyboard
+from bot.keyboards import alert_result_keyboard, alert_threshold_keyboard, recovery_keyboard
 from db.crud import create_alert, list_alerts
 from db.models import SessionLocal
 
@@ -48,7 +48,10 @@ async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         market = results[0] if results else None
 
     if not market:
-        await update.effective_message.reply_text(f'No market found for "{target}".')
+        await update.effective_message.reply_text(
+            f'No market found for "{target}".',
+            reply_markup=recovery_keyboard(),
+        )
         return
 
     context.user_data["alert_market"] = market

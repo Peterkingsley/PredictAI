@@ -29,6 +29,34 @@ def dashboard_keyboard(has_wallet: bool = False) -> InlineKeyboardMarkup:
     )
 
 
+def home_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[InlineKeyboardButton("Home", callback_data="home")]])
+
+
+def recovery_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Markets", callback_data="markets"),
+                InlineKeyboardButton("Search", callback_data="search_help"),
+            ],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
+    )
+
+
+def status_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Orders", callback_data="orders"),
+                InlineKeyboardButton("Wallet", callback_data="wallets"),
+            ],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
+    )
+
+
 def start_keyboard(has_wallet: bool = False) -> InlineKeyboardMarkup:
     return dashboard_keyboard(has_wallet=has_wallet)
 

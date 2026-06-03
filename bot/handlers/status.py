@@ -2,6 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.services.order_submission import PolymarketOrderSubmissionService
+from bot.keyboards import status_keyboard
 
 
 async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -24,4 +25,7 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
     ]
     if missing:
         lines.extend(["", "Missing configuration:", *[f"- {item}" for item in missing]])
-    await update.effective_message.reply_text("\n".join(lines))
+    if update.callback_query:
+        await update.callback_query.edit_message_text("\n".join(lines), reply_markup=status_keyboard())
+        return
+    await update.effective_message.reply_text("\n".join(lines), reply_markup=status_keyboard())

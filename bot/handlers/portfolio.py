@@ -1,7 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
-from bot.keyboards import portfolio_keyboard, portfolio_result_keyboard, position_actions_keyboard
+from bot.keyboards import portfolio_keyboard, portfolio_result_keyboard, position_actions_keyboard, recovery_keyboard
 from db.crud import get_position, list_open_positions, list_positions
 from db.models import SessionLocal
 
@@ -24,7 +24,8 @@ async def portfolio_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.effective_message.reply_text(
             "Your portfolio\n"
             "--------------\n"
-            "No open positions yet.\n\nOpen a market and tap Bet to prepare one."
+            "No open positions yet.\n\nOpen a market and tap Bet to prepare one.",
+            reply_markup=recovery_keyboard(),
         )
         return
 
@@ -36,7 +37,10 @@ async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         positions = await list_positions(session, update.effective_user.id, limit=10)
 
     if not positions:
-        await update.effective_message.reply_text("Order history\n-------------\nNo orders yet.")
+        await update.effective_message.reply_text(
+            "Order history\n-------------\nNo orders yet.",
+            reply_markup=recovery_keyboard(),
+        )
         return
 
     lines = ["Order history", "-------------"]
@@ -49,7 +53,7 @@ async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 f"{position.side} - {amount:.2f} USDC - {position.status} - PnL {pnl:+.2f}",
             ]
         )
-    await update.effective_message.reply_text("\n".join(lines))
+    await update.effective_message.reply_text("\n".join(lines), reply_markup=portfolio_result_keyboard())
 
 
 async def pnl_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -86,13 +90,13 @@ async def position_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     try:
         position_id = int(command.rsplit("_", 1)[1])
     except (IndexError, ValueError):
-        await update.effective_message.reply_text("Usage: /position_[id]")
+        await update.effective_message.reply_text("Usage: /position_[id]", reply_markup=portfolio_result_keyboard())
         return
 
     async with SessionLocal() as session:
         position = await get_position(session, update.effective_user.id, position_id)
     if not position:
-        await update.effective_message.reply_text("Position not found.")
+        await update.effective_message.reply_text("Position not found.", reply_markup=portfolio_result_keyboard())
         return
 
     await update.effective_message.reply_text(
@@ -120,7 +124,7 @@ async def portfolio_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         position = await get_position(session, query.from_user.id, position_id)
 
     if not position:
-        await query.edit_message_text("Position not found.")
+        await query.edit_message_text("Position not found.", reply_markup=portfolio_result_keyboard())
         return
 
     if action == "position_share":

@@ -2,7 +2,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.services.polymarket import PolymarketService, PolymarketServiceError
-from bot.keyboards import market_actions_keyboard, market_results_keyboard
+from bot.keyboards import market_actions_keyboard, market_results_keyboard, recovery_keyboard
 from bot.messages import format_market_detail, format_market_list
 
 service = PolymarketService()
@@ -18,7 +18,10 @@ async def markets_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             markets = await service.get_top_markets(limit=10)
             title = "Top markets"
     except PolymarketServiceError:
-        await update.effective_message.reply_text("Could not reach Polymarket. Try again in a moment.")
+        await update.effective_message.reply_text(
+            "Could not reach Polymarket. Try again in a moment.",
+            reply_markup=recovery_keyboard(),
+        )
         return
 
     await _send_market_results(update, context, title, markets)
@@ -28,30 +31,42 @@ async def new_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     try:
         markets = await service.get_new_markets(limit=10)
     except PolymarketServiceError:
-        await update.effective_message.reply_text("Could not reach Polymarket. Try again in a moment.")
+        await update.effective_message.reply_text(
+            "Could not reach Polymarket. Try again in a moment.",
+            reply_markup=recovery_keyboard(),
+        )
         return
     await _send_market_results(update, context, "New markets", markets)
 
 
 async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
-        await update.effective_message.reply_text("Usage: /search [keyword]")
+        await update.effective_message.reply_text(
+            "Search markets\n"
+            "--------------\n"
+            "Type /search followed by a keyword.\n\n"
+            "Example: /search bitcoin",
+            reply_markup=recovery_keyboard(),
+        )
         return
     query = " ".join(context.args)
     markets = await service.search_markets(query, limit=5)
     if not markets:
-        await update.effective_message.reply_text(f'No markets found for "{query}". Try different keywords.')
+        await update.effective_message.reply_text(
+            f'No markets found for "{query}". Try different keywords.',
+            reply_markup=recovery_keyboard(),
+        )
         return
     await _send_market_results(update, context, f'{len(markets)} results for "{query}"', markets)
 
 
 async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
-        await update.effective_message.reply_text("Usage: /market [market id]")
+        await update.effective_message.reply_text("Usage: /market [market id]", reply_markup=recovery_keyboard())
         return
     market = await service.get_market(context.args[0])
     if not market:
-        await update.effective_message.reply_text("Market not found.")
+        await update.effective_message.reply_text("Market not found.", reply_markup=recovery_keyboard())
         return
     context.user_data["selected_market"] = market
     await update.effective_message.reply_text(
@@ -75,7 +90,7 @@ async def market_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         market = await service.get_market(market_id)
     if not market:
-        await query.edit_message_text("Market not found.")
+        await query.edit_message_text("Market not found.", reply_markup=recovery_keyboard())
         return
     context.user_data["selected_market"] = market
     if action == "market":
@@ -127,11 +142,17 @@ async def _show_picked_market(update: Update, context: ContextTypes.DEFAULT_TYPE
     try:
         index = int(raw_index)
     except ValueError:
-        await query.edit_message_text("This market list expired. Run /markets or /search again.")
+        await query.edit_message_text(
+            "This market list expired. Run /markets or /search again.",
+            reply_markup=recovery_keyboard(),
+        )
         return
     markets = context.user_data.get("market_results") or []
     if index < 0 or index >= len(markets):
-        await query.edit_message_text("This market list expired. Run /markets or /search again.")
+        await query.edit_message_text(
+            "This market list expired. Run /markets or /search again.",
+            reply_markup=recovery_keyboard(),
+        )
         return
     market = markets[index]
     context.user_data["selected_market"] = market
@@ -146,7 +167,10 @@ async def _show_previous_market_results(update: Update, context: ContextTypes.DE
     markets = context.user_data.get("market_results") or []
     title = context.user_data.get("market_results_title") or "Markets"
     if not markets:
-        await query.edit_message_text("This market list expired. Run /markets or /search again.")
+        await query.edit_message_text(
+            "This market list expired. Run /markets or /search again.",
+            reply_markup=recovery_keyboard(),
+        )
         return
     await query.edit_message_text(
         format_market_list(title, markets),

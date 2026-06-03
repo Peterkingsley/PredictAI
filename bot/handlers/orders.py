@@ -3,7 +3,7 @@ from telegram.ext import ContextTypes
 
 from api.services.wallets import short_address
 from api.services.order_submission import OrderSubmissionError, PolymarketOrderSubmissionService
-from bot.keyboards import order_actions_keyboard, order_result_keyboard, orders_dashboard_keyboard
+from bot.keyboards import order_actions_keyboard, order_result_keyboard, orders_dashboard_keyboard, recovery_keyboard
 from db.crud import (
     get_signing_intent_for_trade_order,
     get_trade_order,
@@ -27,7 +27,8 @@ async def orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.effective_message.reply_text(
             "Orders\n"
             "------\n"
-            "No signed orders yet.\n\nOpen a market and tap Bet to prepare one."
+            "No signed orders yet.\n\nOpen a market and tap Bet to prepare one.",
+            reply_markup=recovery_keyboard(),
         )
         return
 
@@ -39,13 +40,13 @@ async def order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     try:
         order_id = int(command.rsplit("_", 1)[1])
     except (IndexError, ValueError):
-        await update.effective_message.reply_text("Usage: /order_[id]")
+        await update.effective_message.reply_text("Usage: /order_[id]", reply_markup=order_result_keyboard())
         return
 
     async with SessionLocal() as session:
         order = await get_trade_order(session, update.effective_user.id, order_id)
     if not order:
-        await update.effective_message.reply_text("Order not found.")
+        await update.effective_message.reply_text("Order not found.", reply_markup=order_result_keyboard())
         return
 
     await update.effective_message.reply_text(_format_order_detail(order), reply_markup=order_actions_keyboard(order))
@@ -90,31 +91,32 @@ async def sync_orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 async def cancel_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
-        await update.effective_message.reply_text("Usage: /cancel_order [order id]")
+        await update.effective_message.reply_text("Usage: /cancel_order [order id]", reply_markup=order_result_keyboard())
         return
     try:
         order_id = int(context.args[0])
     except ValueError:
-        await update.effective_message.reply_text("Order ID must be a number.")
+        await update.effective_message.reply_text("Order ID must be a number.", reply_markup=order_result_keyboard())
         return
 
     service = PolymarketOrderSubmissionService()
     async with SessionLocal() as session:
         order = await get_trade_order(session, update.effective_user.id, order_id)
         if not order:
-            await update.effective_message.reply_text("Order not found.")
+            await update.effective_message.reply_text("Order not found.", reply_markup=order_result_keyboard())
             return
         if order.status not in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}:
             await update.effective_message.reply_text(
                 f"Order #{order.id} is not cancellable because status is {_status_label(order.status)}.\n"
-                f"Next: {_next_action(order)}"
+                f"Next: {_next_action(order)}",
+                reply_markup=order_result_keyboard(),
             )
             return
         try:
             cancellation = service.cancel_order(order.polymarket_order_id)
             updated = await update_trade_order_cancellation(session, order, cancellation["raw_response"])
         except OrderSubmissionError as exc:
-            await update.effective_message.reply_text(f"Cancel failed\n-------------\n{exc}")
+            await update.effective_message.reply_text(f"Cancel failed\n-------------\n{exc}", reply_markup=order_result_keyboard())
             return
 
     await update.effective_message.reply_text(
@@ -122,7 +124,8 @@ async def cancel_order_command(update: Update, context: ContextTypes.DEFAULT_TYP
         "---------------\n"
         f"Order #{updated.id}\n"
         f"{updated.market_question[:80]}\n\n"
-        "This order will no longer fill. Use /orders to review your dashboard."
+        "This order will no longer fill.",
+        reply_markup=order_result_keyboard(),
     )
 
 
@@ -143,7 +146,7 @@ async def order_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     try:
         order_id = int(raw_id)
     except ValueError:
-        await query.edit_message_text("Order action expired. Open /orders again.")
+        await query.edit_message_text("Order action expired. Open Orders again.", reply_markup=order_result_keyboard())
         return
 
     if action.startswith("order_detail:"):
@@ -170,29 +173,33 @@ async def order_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def retry_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
-        await update.effective_message.reply_text("Usage: /retry_order [order id]")
+        await update.effective_message.reply_text("Usage: /retry_order [order id]", reply_markup=order_result_keyboard())
         return
     try:
         order_id = int(context.args[0])
     except ValueError:
-        await update.effective_message.reply_text("Order ID must be a number.")
+        await update.effective_message.reply_text("Order ID must be a number.", reply_markup=order_result_keyboard())
         return
 
     service = PolymarketOrderSubmissionService()
     async with SessionLocal() as session:
         result = await get_signing_intent_for_trade_order(session, update.effective_user.id, order_id)
         if not result:
-            await update.effective_message.reply_text("Order not found.")
+            await update.effective_message.reply_text("Order not found.", reply_markup=order_result_keyboard())
             return
         order, intent = result
         if order.status not in RETRYABLE_ORDER_STATUSES:
             await update.effective_message.reply_text(
                 f"Order #{order.id} is not retryable because status is {_status_label(order.status)}.\n"
-                f"Next: {_next_action(order)}"
+                f"Next: {_next_action(order)}",
+                reply_markup=order_result_keyboard(),
             )
             return
         if not intent.signature:
-            await update.effective_message.reply_text("This order has no verified wallet signature yet, so it cannot be retried.")
+            await update.effective_message.reply_text(
+                "This order has no verified wallet signature yet, so it cannot be retried.",
+                reply_markup=order_result_keyboard(),
+            )
             return
         try:
             submission = service.submit_verified_intent(intent).as_dict()
@@ -202,7 +209,8 @@ async def retry_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE
                 "Retry failed\n"
                 "------------\n"
                 f"{exc}\n\n"
-                "Run /status to verify live submission settings, then retry again."
+                "Run /status to verify live submission settings, then retry again.",
+                reply_markup=order_result_keyboard(),
             )
             return
 
@@ -273,7 +281,8 @@ async def _retry_order_for_user(telegram_id: int, order_id: int) -> str:
         f"Order #{updated.id}\n"
         f"Status: {_status_label(updated.status)}\n"
         f"Polymarket order: {updated.polymarket_order_id or '-'}\n\n"
-        f"Next: {_next_action(updated)}"
+        f"Next: {_next_action(updated)}",
+        reply_markup=order_result_keyboard(),
     )
 
 
