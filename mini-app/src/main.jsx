@@ -131,6 +131,24 @@ function walletBrowserLinks() {
     trust: `https://link.trustwallet.com/open_url?coin_id=966&url=${encodeURIComponent(url)}`,
     coinbase: `https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(url)}`,
     phantom: `https://phantom.app/ul/browse/${encodeURIComponent(url)}?ref=${encodeURIComponent(window.location.origin)}`,
+    rainbow: "https://rainbow.me/download",
+    safepal: "https://www.safepal.com/download",
+    okx: `okx://wallet/dapp/url?dappUrl=${encodeURIComponent(url)}`,
+    binance: "https://www.binance.com/en/web3wallet",
+    rabby: "https://rabby.io",
+    bitget: "https://web3.bitget.com/en/wallet",
+    tokenpocket: "https://www.tokenpocket.pro",
+    imtoken: "https://token.im",
+    mathwallet: "https://mathwallet.org",
+    zerion: "https://zerion.io/download",
+    exodus: "https://www.exodus.com/web3-wallet",
+    ledger: "https://www.ledger.com/ledger-live",
+    cryptocom: "https://crypto.com/defi-wallet",
+    blockchain: "https://www.blockchain.com/wallet",
+    brave: "https://brave.com/wallet",
+    oneinch: "https://wallet.1inch.io",
+    uniswap: "https://wallet.uniswap.org",
+    backpack: "https://backpack.app",
   };
 }
 
@@ -191,10 +209,6 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
   function openWalletBrowser(walletName) {
     const links = walletBrowserLinks();
     const url = links[walletName] || walletPageUrl();
-    if (!links[walletName]) {
-      copyWalletPageLink(walletName);
-      return;
-    }
     if (isTelegramWebApp() && window.Telegram?.WebApp?.openLink) {
       window.Telegram.WebApp.openLink(url, { try_instant_view: false });
       return;
