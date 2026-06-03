@@ -46,3 +46,11 @@ For Render, set secrets in the Render dashboard or Blueprint environment group.
 For live Polymarket orders, also set the CLOB credentials plus `POLYMARKET_USDC_SPENDER`. PredictAI checks the connected wallet's Polygon USDC balance and the Mini App prompts the user to approve USDC allowance before asking them to sign an order.
 
 For admin controls, set `ADMIN_TELEGRAM_IDS` to your Telegram numeric user ID. Root admins can delegate access with `/admin_grant [telegram_id]` and revoke delegated access with `/admin_revoke [telegram_id]`.
+
+## Production launch
+
+Use `docs/LAUNCH_CHECKLIST.md` before enabling live trading. Run the smoke test with:
+
+```bash
+python scripts/smoke_test.py --api-base-url https://YOUR-API-DOMAIN --telegram --redis
+```
