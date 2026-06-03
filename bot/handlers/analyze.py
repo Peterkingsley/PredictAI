@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 
 from api.services.ai_analysis import AIAnalysisService
 from api.services.polymarket import PolymarketService
+from bot.keyboards import analysis_result_keyboard
 
 market_service = PolymarketService()
 ai_service = AIAnalysisService()
@@ -34,9 +35,9 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     )
 
     if update.callback_query:
-        await update.callback_query.edit_message_text(text)
+        await update.callback_query.edit_message_text(text, reply_markup=analysis_result_keyboard())
     else:
-        await update.effective_message.reply_text(text)
+        await update.effective_message.reply_text(text, reply_markup=analysis_result_keyboard())
 
 
 async def quick_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:

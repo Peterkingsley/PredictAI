@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.services.polymarket import PolymarketService
-from bot.keyboards import alert_threshold_keyboard
+from bot.keyboards import alert_result_keyboard, alert_threshold_keyboard
 from db.crud import create_alert, list_alerts
 from db.models import SessionLocal
 
@@ -21,7 +21,8 @@ async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 "Alerts\n"
                 "------\n"
                 "No active alerts yet.\n\n"
-                "Use /alerts [market id or keyword] to create one."
+                "Open a market and tap Alert to create one.",
+                reply_markup=alert_result_keyboard(include_market=False),
             )
             return
         lines = ["Active alerts", "-------------"]
@@ -33,7 +34,12 @@ async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                     f"{alert.direction} {float(alert.threshold):.0f}%",
                 ]
             )
-        await update.effective_message.reply_text("\n".join(lines))
+        lines.append("")
+        lines.append("Open a market and tap Alert to create another one.")
+        await update.effective_message.reply_text(
+            "\n".join(lines),
+            reply_markup=alert_result_keyboard(include_market=bool(context.user_data.get("selected_market"))),
+        )
         return
 
     market = await service.get_market(target)
@@ -62,13 +68,17 @@ async def alert_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     action = query.data
 
     if action == "alert_cancel":
+        has_market = bool(context.user_data.get("selected_market") or context.user_data.get("alert_market"))
         context.user_data.pop("alert_market", None)
-        await query.edit_message_text("Alert cancelled.")
+        await query.edit_message_text("Alert cancelled.", reply_markup=alert_result_keyboard(include_market=has_market))
         return
 
     market = context.user_data.get("alert_market")
     if not market:
-        await query.edit_message_text("Alert setup expired. Use /alerts [market] to start again.")
+        await query.edit_message_text(
+            "Alert setup expired. Open a market and tap Alert to start again.",
+            reply_markup=alert_result_keyboard(include_market=bool(context.user_data.get("selected_market"))),
+        )
         return
 
     threshold = float(action.split(":", 1)[1])
@@ -84,9 +94,11 @@ async def alert_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
 
     context.user_data.pop("alert_market", None)
+    context.user_data["selected_market"] = market
     await query.edit_message_text(
         "Alert set\n"
         "---------\n"
         f"{alert.market_question}\n"
-        f"Notify when Yes probability crosses {float(alert.threshold):.0f}%."
+        f"Notify when Yes probability crosses {float(alert.threshold):.0f}%.",
+        reply_markup=alert_result_keyboard(include_market=True),
     )

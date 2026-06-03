@@ -121,6 +121,39 @@ def market_actions_keyboard(market_id: str, include_back: bool = False) -> Inlin
     return InlineKeyboardMarkup(rows)
 
 
+def analysis_result_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Bet", callback_data="bet:selected"),
+                InlineKeyboardButton("Alert", callback_data="alert_market:selected"),
+            ],
+            [
+                InlineKeyboardButton("Market", callback_data="market:selected"),
+                InlineKeyboardButton("Home", callback_data="home"),
+            ],
+        ]
+    )
+
+
+def alert_result_keyboard(include_market: bool = True) -> InlineKeyboardMarkup:
+    rows = []
+    if include_market:
+        rows.append(
+            [
+                InlineKeyboardButton("Bet", callback_data="bet:selected"),
+                InlineKeyboardButton("Market", callback_data="market:selected"),
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton("Markets", callback_data="markets"),
+            InlineKeyboardButton("Home", callback_data="home"),
+        ]
+    )
+    return InlineKeyboardMarkup(rows)
+
+
 def bet_side_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
