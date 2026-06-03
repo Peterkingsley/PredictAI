@@ -1,45 +1,74 @@
 from typing import Any
 
 START_TEXT = (
-    "Welcome to PredictAI\n"
-    "Browse live prediction markets, get AI analysis, connect your wallet, and prepare Polymarket orders from Telegram.\n\n"
-    "Quick start:\n"
-    "/markets\n"
-    "/search fed\n"
-    "/analyze bitcoin\n"
-    "/help"
+    "PredictAI home\n"
+    "--------------\n"
+    "Browse live prediction markets, get AI analysis, connect a wallet, and prepare Polymarket orders from Telegram."
 )
 
 HELP_TEXT = (
-    "All commands\n"
-    "------------\n"
-    "Markets\n"
-    "/markets - top markets\n"
-    "/markets [category] - filter by category\n"
-    "/new - recent markets\n"
-    "/search [keyword] - search markets\n"
-    "/market [id] - market detail\n\n"
-    "Analysis\n"
-    "/analyze [market id or keyword] - AI report\n"
-    "/quick [market id or keyword] - quick read\n"
-    "/alerts [market id or keyword] - set probability alert\n\n"
-    "Trading\n"
-    "/bet [market id or keyword] - prepare a Polymarket order\n"
-    "/orders - order dashboard\n"
-    "/sync_orders - reconcile submitted/open order statuses\n"
-    "/retry_order [id] - retry a signed failed/queued order\n"
-    "/cancel_order [id] - cancel an open order\n"
-    "/portfolio - view positions\n"
-    "/history - past orders\n"
-    "/pnl - P&L snapshot\n\n"
-    "Status\n"
-    "/status - trading readiness\n"
-    "/admin_status - admin-only production status\n\n"
-    "Account\n"
-    "/connect - connect wallet\n"
-    "/wallets - list wallets\n"
-    "/disconnect - remove wallets"
+    "Help menu\n"
+    "---------\n"
+    "Choose what you want to do. Most common actions now work from buttons inside chat."
 )
+
+HELP_SECTIONS = {
+    "markets": (
+        "Markets\n"
+        "-------\n"
+        "Use Markets for popular live markets, New for recent markets, or Search when you know what you want.\n\n"
+        "Power commands:\n"
+        "/markets\n"
+        "/markets [category]\n"
+        "/new\n"
+        "/search [keyword]\n"
+        "/market [id]"
+    ),
+    "trading": (
+        "Trading\n"
+        "-------\n"
+        "Open a market, tap Bet, choose Yes or No, select an amount, then review before signing. Wallet approval still happens in the Mini App.\n\n"
+        "Power command:\n"
+        "/bet [market id or keyword]"
+    ),
+    "wallet": (
+        "Wallet\n"
+        "------\n"
+        "Connect a Polygon wallet before preparing orders. PredictAI never asks for private keys.\n\n"
+        "Power commands:\n"
+        "/connect\n"
+        "/wallets\n"
+        "/disconnect"
+    ),
+    "orders": (
+        "Orders\n"
+        "------\n"
+        "Orders show signed requests, submitted orders, fills, failures, and the next action.\n\n"
+        "Power commands:\n"
+        "/orders\n"
+        "/sync_orders\n"
+        "/retry_order [id]\n"
+        "/cancel_order [id]\n"
+        "/portfolio\n"
+        "/history\n"
+        "/pnl"
+    ),
+    "alerts": (
+        "Alerts\n"
+        "------\n"
+        "Open a market and tap Alert, or create one by keyword. Alerts notify when Yes probability crosses your threshold.\n\n"
+        "Power command:\n"
+        "/alerts [market id or keyword]"
+    ),
+    "status": (
+        "Status\n"
+        "------\n"
+        "Status checks whether live order submission is enabled and whether required trading configuration is present.\n\n"
+        "Power commands:\n"
+        "/status\n"
+        "/admin_status"
+    ),
+}
 
 
 def format_market_list(title: str, markets: list[dict[str, Any]]) -> str:

@@ -1,37 +1,96 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, WebAppInfo
+from urllib.parse import urlencode
+
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 
 from api.config import get_settings
 
 
-def start_keyboard() -> InlineKeyboardMarkup:
+def dashboard_keyboard(has_wallet: bool = False) -> InlineKeyboardMarkup:
+    wallet_label = "Wallet" if has_wallet else "Connect wallet"
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Markets", callback_data="markets"),
+                InlineKeyboardButton("New", callback_data="new"),
+            ],
+            [
+                InlineKeyboardButton("Search", callback_data="search_help"),
+                InlineKeyboardButton("Orders", callback_data="orders"),
+            ],
+            [
+                InlineKeyboardButton(wallet_label, callback_data="wallets" if has_wallet else "connect"),
+                InlineKeyboardButton("Portfolio", callback_data="portfolio"),
+            ],
+            [
+                InlineKeyboardButton("Status", callback_data="status"),
+                InlineKeyboardButton("Help", callback_data="help"),
+            ],
+        ]
+    )
+
+
+def start_keyboard(has_wallet: bool = False) -> InlineKeyboardMarkup:
+    return dashboard_keyboard(has_wallet=has_wallet)
+
+
+def help_menu_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Markets", callback_data="help:markets"),
+                InlineKeyboardButton("Trading", callback_data="help:trading"),
+            ],
+            [
+                InlineKeyboardButton("Wallet", callback_data="help:wallet"),
+                InlineKeyboardButton("Orders", callback_data="help:orders"),
+            ],
+            [
+                InlineKeyboardButton("Alerts", callback_data="help:alerts"),
+                InlineKeyboardButton("Status", callback_data="help:status"),
+            ],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
+    )
+
+
+def help_section_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Back to help", callback_data="help")],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
+    )
+
+
+def wallet_actions_keyboard(has_wallet: bool = False) -> InlineKeyboardMarkup:
     settings = get_settings()
-    buttons = []
+    buttons: list[list[InlineKeyboardButton]] = []
     if settings.mini_app_url:
         buttons.append([InlineKeyboardButton("Connect wallet", callback_data="connect")])
+    if has_wallet:
+        buttons.append([InlineKeyboardButton("Browse markets", callback_data="markets")])
     buttons.append(
         [
-            InlineKeyboardButton("Markets", callback_data="markets"),
-            InlineKeyboardButton("Help", callback_data="help"),
+            InlineKeyboardButton("Orders", callback_data="orders"),
+            InlineKeyboardButton("Home", callback_data="home"),
         ]
     )
     return InlineKeyboardMarkup(buttons)
 
 
-def connect_wallet_keyboard() -> InlineKeyboardMarkup:
+def connect_wallet_keyboard(telegram_id: int | None = None) -> InlineKeyboardMarkup:
     settings = get_settings()
     if not settings.mini_app_url:
         return InlineKeyboardMarkup([[InlineKeyboardButton("Mini App not configured", callback_data="help")]])
+    connect_url = settings.mini_app_url
+    if telegram_id is not None:
+        separator = "&" if "?" in connect_url else "?"
+        connect_url = f"{connect_url}{separator}{urlencode({'telegram_id': telegram_id})}"
     return InlineKeyboardMarkup(
-        [[InlineKeyboardButton("Open wallet connect", web_app=WebAppInfo(settings.mini_app_url))]]
-    )
-
-
-def connect_wallet_reply_keyboard() -> ReplyKeyboardMarkup:
-    settings = get_settings()
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("Open wallet connect", web_app=WebAppInfo(settings.mini_app_url))]],
-        resize_keyboard=True,
-        one_time_keyboard=True,
+        [
+            [InlineKeyboardButton("Open wallet connect", web_app=WebAppInfo(connect_url))],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
     )
 
 

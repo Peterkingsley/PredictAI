@@ -1,11 +1,11 @@
 import json
-from urllib.parse import urlencode
 
-from telegram import KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove, Update, WebAppInfo
+from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.config import get_settings
 from api.services.wallets import get_usdc_balance, is_evm_address, short_address
+from bot.keyboards import connect_wallet_keyboard, wallet_actions_keyboard
 from db.crud import add_wallet, disconnect_wallets, list_wallets
 from db.models import SessionLocal
 
@@ -18,10 +18,17 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
 
-    await update.effective_message.reply_text(
-        "Connect your wallet\nTap the keyboard button below to open the wallet connect screen.\n\nIf you are retrying after an update, use this fresh button.",
-        reply_markup=_connect_wallet_keyboard_for_user(update.effective_user.id),
+    text = (
+        "Connect your wallet\n"
+        "-------------------\n"
+        "Open the wallet connect screen, choose your Polygon wallet, then return to Telegram.\n\n"
+        "PredictAI never asks for private keys."
     )
+    reply_markup = connect_wallet_keyboard(update.effective_user.id)
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=reply_markup)
+        return
+    await update.effective_message.reply_text(text, reply_markup=reply_markup)
 
 
 async def wallets_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -30,8 +37,8 @@ async def wallets_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if not wallets:
         await update.effective_message.reply_text(
-            "No wallets connected yet.\n\nUse /connect to add one.",
-            reply_markup=_connect_wallet_keyboard_for_user(update.effective_user.id),
+            "No wallets connected yet.\n\nTap below to connect one.",
+            reply_markup=connect_wallet_keyboard(update.effective_user.id),
         )
         return
 
@@ -42,9 +49,8 @@ async def wallets_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         balance_text = f" - {balance:.2f} USDC" if balance is not None else ""
         active_text = " [Active]" if wallet.is_active else ""
         lines.append(f"{marker} {short_address(wallet.address)}{balance_text}{active_text}")
-    lines.append("\n/connect - add wallet")
-    lines.append("/disconnect - remove all wallets")
-    await update.effective_message.reply_text("\n".join(lines))
+    lines.append("\nChoose an action below.")
+    await update.effective_message.reply_text("\n".join(lines), reply_markup=wallet_actions_keyboard(has_wallet=True))
 
 
 async def disconnect_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -86,17 +92,9 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
     balance_text = f"\n\nUSDC balance: {balance:.2f}" if balance is not None else ""
     proof_text = "\nConnection signature received." if connection_signature else "\nConnection signature missing."
     await update.effective_message.reply_text(
-        f"Wallet connected\n{short_address(wallet.address)}{proof_text}{balance_text}\n\nTry /markets or /wallets.",
-        reply_markup=ReplyKeyboardRemove(),
-    )
-
-
-def _connect_wallet_keyboard_for_user(telegram_id: int) -> ReplyKeyboardMarkup:
-    settings = get_settings()
-    separator = "&" if "?" in settings.mini_app_url else "?"
-    connect_url = f"{settings.mini_app_url}{separator}{urlencode({'telegram_id': telegram_id})}"
-    return ReplyKeyboardMarkup(
-        [[KeyboardButton("Open wallet connect", web_app=WebAppInfo(connect_url))]],
-        resize_keyboard=True,
-        one_time_keyboard=True,
+        f"Wallet connected\n"
+        f"----------------\n"
+        f"{short_address(wallet.address)}{proof_text}{balance_text}\n\n"
+        "Choose what to do next.",
+        reply_markup=wallet_actions_keyboard(has_wallet=True),
     )
