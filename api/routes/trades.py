@@ -300,18 +300,29 @@ async def _notify_telegram_signature_received(telegram_id: int, intent) -> None:
     question = payload.get("market_question", "Selected market")
     amount_text = f"{float(amount):.2f} USDC " if amount is not None else ""
     if submission.get("status") == "submitted":
-        order_status = f"Order submitted to Polymarket CLOB.\nOrder: {submission.get('order_id') or 'pending ID'}"
+        order_status = (
+            f"Order submitted to Polymarket CLOB.\n"
+            f"Order: {submission.get('order_id') or 'pending ID'}\n"
+            "Next: run /sync_orders to confirm open/filled status."
+        )
     elif submission.get("status") == "failed":
-        order_status = f"Order submission failed: {submission.get('message')}"
+        order_status = (
+            f"Order submission failed: {submission.get('message')}\n"
+            "Next: run /status, fix the issue, then create a new order."
+        )
     else:
-        order_status = f"Order submission queued: {submission.get('message', 'live submission is not enabled yet.')}"
+        order_status = (
+            f"Order submission queued: {submission.get('message', 'live submission is not enabled yet.')}\n"
+            "Next: run /status to see what is blocking live submission."
+        )
     text = (
         "Wallet signature received\n"
         "-------------------------\n"
         f"Signing request #{intent.id}\n"
         f"{amount_text}{side}\n"
         f"{question}\n\n"
-        f"{order_status}"
+        f"{order_status}\n\n"
+        "Use /orders for the order dashboard."
     )
 
     api_url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
