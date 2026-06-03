@@ -133,6 +133,12 @@ def market_results_keyboard(markets: list[dict], include_back: bool = False) -> 
         )
     if include_back:
         rows.append([InlineKeyboardButton("Back to results", callback_data="market_back")])
+    rows.append(
+        [
+            InlineKeyboardButton("Search", callback_data="search_help"),
+            InlineKeyboardButton("Home", callback_data="home"),
+        ]
+    )
     return InlineKeyboardMarkup(rows)
 
 

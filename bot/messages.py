@@ -88,7 +88,7 @@ def format_market_list(title: str, markets: list[dict[str, Any]]) -> str:
                 "",
             ]
         )
-    lines.append("Tap a number below to view details and prepare an order.")
+    lines.append("Tap a number to inspect a market, or use Search/Home below.")
     return "\n".join(lines).strip()
 
 
