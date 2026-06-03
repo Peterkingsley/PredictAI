@@ -7,6 +7,7 @@ import httpx
 from api.config import get_settings
 
 POLYGON_USDC = "0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174"
+USDC_DECIMALS = 1_000_000
 
 
 def is_evm_address(address: str) -> bool:
@@ -42,4 +43,33 @@ async def get_usdc_balance(address: str) -> float | None:
         result = response.json().get("result")
     if not result:
         return None
-    return int(result, 16) / 1_000_000
+    return int(result, 16) / USDC_DECIMALS
+
+
+async def get_usdc_allowance(owner: str, spender: str) -> float | None:
+    settings = get_settings()
+    if not settings.polygon_rpc_url or not is_evm_address(owner) or not is_evm_address(spender):
+        return None
+
+    selector = "dd62ed3e"
+    padded_owner = owner.lower().removeprefix("0x").rjust(64, "0")
+    padded_spender = spender.lower().removeprefix("0x").rjust(64, "0")
+    payload = {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "method": "eth_call",
+        "params": [
+            {
+                "to": POLYGON_USDC,
+                "data": f"0x{selector}{padded_owner}{padded_spender}",
+            },
+            "latest",
+        ],
+    }
+    async with httpx.AsyncClient(timeout=12) as client:
+        response = await client.post(settings.polygon_rpc_url, json=payload)
+        response.raise_for_status()
+        result = response.json().get("result")
+    if not result:
+        return None
+    return int(result, 16) / USDC_DECIMALS

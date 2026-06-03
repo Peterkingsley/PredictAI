@@ -80,6 +80,7 @@ class PolymarketOrderSubmissionService:
             "chain_id": self.settings.polygon_chain_id,
             "signature_type": self.settings.polymarket_signature_type,
             "has_funder_address": bool(self.settings.polymarket_funder_address),
+            "has_usdc_spender": bool(self.settings.polymarket_usdc_spender),
             "message": message,
         }
 

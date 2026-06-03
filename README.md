@@ -25,7 +25,7 @@ Phase 1 is focused on the working Telegram bot foundation:
 - `/portfolio` placeholder
 - live Polymarket market data via `py-clob-client`, with HTTP fallback
 
-Wallet signing, backend signature verification, and safety-gated Polymarket CLOB order submission are implemented. Live submission is controlled by `POLYMARKET_ORDER_SUBMISSION_ENABLED`.
+Wallet signing, backend signature verification, pre-trade checks, and safety-gated Polymarket CLOB order submission are implemented. Live submission is controlled by `POLYMARKET_ORDER_SUBMISSION_ENABLED`.
 
 ## Local setup
 
@@ -42,3 +42,5 @@ python -m bot.main
 Use `.env.example` as the template. Do not commit `.env`.
 
 For Render, set secrets in the Render dashboard or Blueprint environment group.
+
+For live Polymarket orders, also set the CLOB credentials plus `POLYMARKET_USDC_SPENDER`. PredictAI checks the connected wallet's Polygon USDC balance and allowance before asking the user to sign an order.

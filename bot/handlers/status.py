@@ -18,6 +18,7 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
         f"Chain: {report['chain_id']}",
         f"Signature type: {report['signature_type']}",
         f"Funder address: {'set' if report['has_funder_address'] else 'not set'}",
+        f"USDC allowance spender: {'set' if report['has_usdc_spender'] else 'not set'}",
         "",
         report["message"],
     ]

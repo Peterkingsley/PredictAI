@@ -50,6 +50,8 @@ services:
         sync: false
       - key: POLYMARKET_FUNDER_ADDRESS
         sync: false
+      - key: POLYMARKET_USDC_SPENDER
+        sync: false
       - key: POLYMARKET_SIGNATURE_TYPE
         value: "0"
       - key: POLYMARKET_ORDER_SUBMISSION_ENABLED
@@ -91,6 +93,8 @@ services:
       - key: REDIS_URL
         sync: false
       - key: POLYMARKET_PRIVATE_KEY
+        sync: false
+      - key: POLYMARKET_USDC_SPENDER
         sync: false
       - key: POLYMARKET_HOST
         value: https://clob.polymarket.com

@@ -11,7 +11,7 @@ from telegram.ext import ContextTypes
 from api.config import get_settings
 from api.services.order_submission import PolymarketOrderSubmissionService
 from api.services.polymarket import PolymarketService
-from api.services.wallets import get_usdc_balance, short_address
+from api.services.wallets import get_usdc_allowance, get_usdc_balance, is_evm_address, short_address
 from bot.keyboards import bet_amount_keyboard, bet_confirm_keyboard, bet_side_keyboard
 from db.crud import create_signing_intent, get_active_wallet, update_signing_intent_payload
 from db.models import SessionLocal
@@ -227,6 +227,21 @@ async def _pre_trade_validation(
         balance = None
     if balance is not None and balance < amount:
         errors.append(f"Wallet USDC balance is {balance:.2f}, below {amount:.2f} USDC.")
+    spender = settings.polymarket_usdc_spender
+    if readiness["ready"]:
+        if not spender:
+            errors.append("POLYMARKET_USDC_SPENDER is not configured, so USDC allowance cannot be verified.")
+        elif not is_evm_address(spender):
+            errors.append("Configured POLYMARKET_USDC_SPENDER is not a valid EVM address.")
+        else:
+            try:
+                allowance = await get_usdc_allowance(wallet_address, spender)
+            except Exception:
+                allowance = None
+            if allowance is None:
+                errors.append("USDC allowance could not be checked from the Polygon RPC.")
+            elif allowance < amount:
+                errors.append(f"USDC allowance for Polymarket is {allowance:.2f}, below {amount:.2f} USDC.")
     return errors
 
 
@@ -248,6 +263,10 @@ def _pre_trade_hint(error: str) -> str:
         return "Choose a larger amount."
     if "usdc balance" in lowered:
         return "Fund the connected Polygon wallet with enough USDC."
+    if "polymarket_usdc_spender" in lowered:
+        return "Set POLYMARKET_USDC_SPENDER to the Polymarket USDC spender/adapter address for this account type."
+    if "usdc allowance" in lowered:
+        return "Approve USDC for the configured Polymarket spender, then try the order again."
     if "market is not active" in lowered or "token is missing" in lowered:
         return "Use /markets or /search to pick another live market."
     if "greater than zero" in lowered:

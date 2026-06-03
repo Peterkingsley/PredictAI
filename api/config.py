@@ -17,6 +17,7 @@ class Settings(BaseSettings):
     polymarket_api_secret: str = ""
     polymarket_api_passphrase: str = ""
     polymarket_funder_address: str = ""
+    polymarket_usdc_spender: str = ""
     polymarket_signature_type: int = 0
     polymarket_order_submission_enabled: bool = False
     polymarket_host: str = "https://clob.polymarket.com"
