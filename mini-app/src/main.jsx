@@ -2,11 +2,35 @@ import "./polyfills.js";
 import React, { useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { useAppKit, useAppKitAccount, useAppKitNetwork, useDisconnect } from "@reown/appkit/react";
-import { useSignMessage, useSignTypedData } from "wagmi";
+import { useReadContract, useSignMessage, useSignTypedData, useWaitForTransactionReceipt, useWriteContract } from "wagmi";
+import { parseUnits } from "viem";
 import "./styles.css";
 import { AppKitProvider, apiBaseUrl, requiredNetwork, walletConnectProjectId } from "./walletConfig.jsx";
 
 const TRUST_WALLET_POLYGON_COIN_ID = 966;
+const USDC_DECIMALS = 6;
+const USDC_ABI = [
+  {
+    type: "function",
+    name: "allowance",
+    stateMutability: "view",
+    inputs: [
+      { name: "owner", type: "address" },
+      { name: "spender", type: "address" },
+    ],
+    outputs: [{ name: "", type: "uint256" }],
+  },
+  {
+    type: "function",
+    name: "approve",
+    stateMutability: "nonpayable",
+    inputs: [
+      { name: "spender", type: "address" },
+      { name: "amount", type: "uint256" },
+    ],
+    outputs: [{ name: "", type: "bool" }],
+  },
+];
 
 function isAddress(value) {
   return /^0x[a-fA-F0-9]{40}$/.test(value || "");
@@ -66,6 +90,17 @@ function buildConnectionMessage(address) {
 function typedDataTypesForWallet(typedData) {
   const { EIP712Domain, ...messageTypes } = typedData?.types || {};
   return messageTypes;
+}
+
+function usdcToUnits(amount) {
+  return parseUnits(Number(amount || 0).toFixed(USDC_DECIMALS), USDC_DECIMALS);
+}
+
+function formatUsdcUnits(value) {
+  if (value === null || value === undefined) {
+    return "-";
+  }
+  return (Number(value) / 1_000_000).toFixed(2);
 }
 
 function isTelegramWebApp() {
@@ -303,7 +338,98 @@ function SignatureButton({ intent, canPrepareSignature, onSigned }) {
   );
 }
 
+function ApprovalPanel({ intent, walletState, onApprovalReady }) {
+  const approval = intent.approval || {};
+  const requiredAmount = approval.required_usdc || intent.payload?.amount_usdc || 0;
+  const requiredUnits = usdcToUnits(requiredAmount);
+  const hasApprovalConfig = isAddress(approval.token_address) && isAddress(approval.spender);
+  const [approvalError, setApprovalError] = useState("");
+  const { data: allowance, refetch } = useReadContract({
+    address: approval.token_address,
+    abi: USDC_ABI,
+    functionName: "allowance",
+    args: [walletState.address, approval.spender],
+    query: {
+      enabled: hasApprovalConfig && walletState.isConnected && walletState.isPolygon && isAddress(walletState.address),
+    },
+  });
+  const {
+    data: approvalHash,
+    isPending: isApprovalOpening,
+    writeContractAsync,
+  } = useWriteContract();
+  const {
+    isLoading: isApprovalConfirming,
+    isSuccess: isApprovalConfirmed,
+  } = useWaitForTransactionReceipt({
+    hash: approvalHash,
+    query: { enabled: Boolean(approvalHash) },
+  });
+  const allowanceReady = typeof allowance === "bigint" && allowance >= requiredUnits;
+
+  useEffect(() => {
+    onApprovalReady(allowanceReady || isApprovalConfirmed);
+  }, [allowanceReady, isApprovalConfirmed, onApprovalReady]);
+
+  useEffect(() => {
+    if (isApprovalConfirmed) {
+      refetch?.();
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+    }
+  }, [isApprovalConfirmed, refetch]);
+
+  async function approveUsdc() {
+    setApprovalError("");
+    try {
+      await writeContractAsync({
+        address: approval.token_address,
+        abi: USDC_ABI,
+        functionName: "approve",
+        args: [approval.spender, requiredUnits],
+      });
+    } catch (error) {
+      setApprovalError(error.message || "Unable to approve USDC.");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
+    }
+  }
+
+  if (!hasApprovalConfig) {
+    return <p className="status warning-text">USDC approval is not configured for this signing request.</p>;
+  }
+
+  return (
+    <div className={allowanceReady || isApprovalConfirmed ? "approval-card ready" : "approval-card"}>
+      <p className="label">USDC approval</p>
+      <p className="status">
+        Required: {Number(requiredAmount).toFixed(2)} USDC / Allowance: {formatUsdcUnits(allowance)}
+      </p>
+      <p className="status">Spender: {shortAddress(approval.spender)}</p>
+      {allowanceReady || isApprovalConfirmed ? (
+        <p className="status good">USDC allowance is ready. You can sign the order.</p>
+      ) : (
+        <>
+          <p className="status warning-text">Approve USDC first so Polymarket can settle this order.</p>
+          {approvalError ? <p className="status warning-text">{approvalError}</p> : null}
+          <button
+            className="primary"
+            disabled={!walletState.isConnected || !walletState.isPolygon || isApprovalOpening || isApprovalConfirming}
+            onClick={approveUsdc}
+          >
+            {isApprovalOpening ? "Opening wallet..." : isApprovalConfirming ? "Waiting for approval..." : "Approve USDC"}
+          </button>
+        </>
+      )}
+    </div>
+  );
+}
+
 function SigningIntentCard({ intentId, intent, loadState, loadError, walletState, onSigned }) {
+  const [approvalReady, setApprovalReady] = useState(false);
+
+  useEffect(() => {
+    setApprovalReady(!intent?.approval?.needs_approval);
+  }, [intent?.id, intent?.approval?.needs_approval]);
+
   if (!intentId) {
     return null;
   }
@@ -342,7 +468,7 @@ function SigningIntentCard({ intentId, intent, loadState, loadError, walletState
   const expectedWallet = normalizeAddress(intent.wallet_address);
   const connectedWallet = normalizeAddress(walletState.address);
   const walletMatches = expectedWallet && connectedWallet && expectedWallet === connectedWallet;
-  const canPrepareSignature = walletMatches && walletState.isPolygon && intent.status === "PENDING";
+  const canPrepareSignature = walletMatches && walletState.isPolygon && intent.status === "PENDING" && approvalReady;
   const payloadEntries = Object.entries(intent.payload || {}).slice(0, 6);
 
   return (
@@ -375,6 +501,9 @@ function SigningIntentCard({ intentId, intent, loadState, loadError, walletState
         <p className="status warning-text">Connected wallet must match {shortAddress(intent.wallet_address)}.</p>
       ) : null}
       {walletMatches && !walletState.isPolygon ? <p className="status warning-text">Switch to Polygon before signing.</p> : null}
+      {walletMatches && walletState.isPolygon && intent.status === "PENDING" ? (
+        <ApprovalPanel intent={intent} walletState={walletState} onApprovalReady={setApprovalReady} />
+      ) : null}
 
       {walletConnectProjectId ? (
         <SignatureButton intent={intent} canPrepareSignature={canPrepareSignature} onSigned={onSigned} />

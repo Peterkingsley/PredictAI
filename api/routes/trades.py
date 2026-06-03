@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 from api.config import get_settings
 from api.services.order_submission import OrderSubmissionError, PolymarketOrderSubmissionService
-from api.services.wallets import short_address
+from api.services.wallets import POLYGON_USDC, get_usdc_allowance, short_address
 from db.crud import (
     complete_signing_intent,
     create_signing_intent,
@@ -94,12 +94,14 @@ async def get_intent(intent_id: int):
         intent = await get_signing_intent(session, intent_id)
     if not intent:
         return {"status": "not_found"}
+    approval = await _approval_requirements(intent)
     return {
         "id": intent.id,
         "telegram_id": intent.telegram_id,
         "wallet_address": intent.wallet_address,
         "intent_type": intent.intent_type,
         "payload": intent.payload,
+        "approval": approval,
         "status": intent.status,
     }
 
@@ -356,6 +358,27 @@ def _submit_verified_order_intent(intent) -> dict:
             "order_id": None,
             "raw_response": None,
         }
+
+
+async def _approval_requirements(intent) -> dict:
+    settings = get_settings()
+    payload = intent.payload or {}
+    amount = float(payload.get("amount_usdc") or 0)
+    spender = settings.polymarket_usdc_spender
+    allowance = None
+    if spender and amount > 0:
+        try:
+            allowance = await get_usdc_allowance(intent.wallet_address, spender)
+        except Exception:
+            allowance = None
+    return {
+        "token_address": POLYGON_USDC,
+        "spender": spender,
+        "required_usdc": amount,
+        "current_allowance_usdc": allowance,
+        "needs_approval": bool(spender and amount > 0 and (allowance is None or allowance < amount)),
+        "can_check_allowance": allowance is not None,
+    }
 
 
 def _trade_order_dict(order) -> dict:

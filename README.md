@@ -43,4 +43,4 @@ Use `.env.example` as the template. Do not commit `.env`.
 
 For Render, set secrets in the Render dashboard or Blueprint environment group.
 
-For live Polymarket orders, also set the CLOB credentials plus `POLYMARKET_USDC_SPENDER`. PredictAI checks the connected wallet's Polygon USDC balance and allowance before asking the user to sign an order.
+For live Polymarket orders, also set the CLOB credentials plus `POLYMARKET_USDC_SPENDER`. PredictAI checks the connected wallet's Polygon USDC balance and the Mini App prompts the user to approve USDC allowance before asking them to sign an order.
