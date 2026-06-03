@@ -53,7 +53,8 @@ def build_app() -> Application:
     app.add_handler(CallbackQueryHandler(markets.market_callback, pattern=r"^(market|market_pick|market_back|analyze|bet|alert_market)(:|$)"))
     app.add_handler(CallbackQueryHandler(alerts.alert_callback, pattern=r"^alert_(threshold|cancel)"))
     app.add_handler(CallbackQueryHandler(trade.trade_callback, pattern=r"^bet_(side|amount|confirm|cancel)"))
-    app.add_handler(CallbackQueryHandler(portfolio.portfolio_callback, pattern=r"^position_(detail|sell|share):"))
+    app.add_handler(CallbackQueryHandler(orders.order_callback, pattern=r"^order_(detail|cancel|retry|sync_all|back)(:|$)"))
+    app.add_handler(CallbackQueryHandler(portfolio.portfolio_callback, pattern=r"^(position_(detail|sell|share):|portfolio_(back|pnl)$)"))
     app.add_handler(CallbackQueryHandler(onboarding.generic_callback))
     return app
 

@@ -3,6 +3,7 @@ from telegram.ext import ContextTypes
 
 from api.services.wallets import short_address
 from api.services.order_submission import OrderSubmissionError, PolymarketOrderSubmissionService
+from bot.keyboards import order_actions_keyboard, order_result_keyboard, orders_dashboard_keyboard
 from db.crud import (
     get_signing_intent_for_trade_order,
     get_trade_order,
@@ -26,30 +27,11 @@ async def orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await update.effective_message.reply_text(
             "Orders\n"
             "------\n"
-            "No signed orders yet.\n\nUse /bet [market] to prepare one."
+            "No signed orders yet.\n\nOpen a market and tap Bet to prepare one."
         )
         return
 
-    counts = _order_status_counts(orders)
-    lines = [
-        "Order dashboard",
-        "---------------",
-        _format_counts(counts),
-        "",
-        "Use /sync_orders to refresh live Polymarket statuses.",
-    ]
-    for order in orders:
-        lines.extend(
-            [
-                "",
-                f"#{order.id} {_status_label(order.status)}",
-                order.market_question[:72],
-                f"{order.order_type} {order.side} - {float(order.amount_usdc):.2f} USDC",
-                f"Limit ${float(order.limit_price):.4f} - Shares {float(order.shares):.2f}",
-                f"{_next_action(order)} /order_{order.id}",
-            ]
-        )
-    await update.effective_message.reply_text("\n".join(lines))
+    await _reply_or_edit(update, _format_order_dashboard(orders), reply_markup=orders_dashboard_keyboard(orders))
 
 
 async def order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -66,7 +48,7 @@ async def order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         await update.effective_message.reply_text("Order not found.")
         return
 
-    await update.effective_message.reply_text(_format_order_detail(order))
+    await update.effective_message.reply_text(_format_order_detail(order), reply_markup=order_actions_keyboard(order))
 
 
 async def sync_orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -103,7 +85,7 @@ async def sync_orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE
                 lines.append(f"Portfolio: position #{position.id} updated.")
     if errors:
         lines.extend(["", "Sync issues:", *errors[:5], "Try again later, or use /status if failures continue."])
-    await update.effective_message.reply_text("\n".join(lines))
+    await _reply_or_edit(update, "\n".join(lines), reply_markup=order_result_keyboard())
 
 
 async def cancel_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -142,6 +124,48 @@ async def cancel_order_command(update: Update, context: ContextTypes.DEFAULT_TYP
         f"{updated.market_question[:80]}\n\n"
         "This order will no longer fill. Use /orders to review your dashboard."
     )
+
+
+async def order_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    await query.answer()
+    action = query.data
+
+    if action == "order_back":
+        await orders_command(update, context)
+        return
+
+    if action == "order_sync_all":
+        await sync_orders_command(update, context)
+        return
+
+    raw_id = action.split(":", 1)[1] if ":" in action else ""
+    try:
+        order_id = int(raw_id)
+    except ValueError:
+        await query.edit_message_text("Order action expired. Open /orders again.")
+        return
+
+    if action.startswith("order_detail:"):
+        async with SessionLocal() as session:
+            order = await get_trade_order(session, query.from_user.id, order_id)
+        if not order:
+            await query.edit_message_text("Order not found.", reply_markup=order_result_keyboard())
+            return
+        await query.edit_message_text(_format_order_detail(order), reply_markup=order_actions_keyboard(order))
+        return
+
+    if action.startswith("order_cancel:"):
+        text = await _cancel_order_for_user(query.from_user.id, order_id)
+        await query.edit_message_text(text, reply_markup=order_result_keyboard())
+        return
+
+    if action.startswith("order_retry:"):
+        text = await _retry_order_for_user(query.from_user.id, order_id)
+        await query.edit_message_text(text, reply_markup=order_result_keyboard())
+        return
+
+    await query.edit_message_text("Order action expired. Open /orders again.", reply_markup=order_result_keyboard())
 
 
 async def retry_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -190,6 +214,90 @@ async def retry_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"Polymarket order: {updated.polymarket_order_id or '-'}\n\n"
         f"Next: {_next_action(updated)}"
     )
+
+
+async def _cancel_order_for_user(telegram_id: int, order_id: int) -> str:
+    service = PolymarketOrderSubmissionService()
+    async with SessionLocal() as session:
+        order = await get_trade_order(session, telegram_id, order_id)
+        if not order:
+            return "Order not found."
+        if order.status not in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}:
+            return (
+                f"Order #{order.id} is not cancellable because status is {_status_label(order.status)}.\n"
+                f"Next: {_next_action(order)}"
+            )
+        try:
+            cancellation = service.cancel_order(order.polymarket_order_id)
+            updated = await update_trade_order_cancellation(session, order, cancellation["raw_response"])
+        except OrderSubmissionError as exc:
+            return f"Cancel failed\n-------------\n{exc}"
+
+    return (
+        "Order cancelled\n"
+        "---------------\n"
+        f"Order #{updated.id}\n"
+        f"{updated.market_question[:80]}\n\n"
+        "This order will no longer fill."
+    )
+
+
+async def _retry_order_for_user(telegram_id: int, order_id: int) -> str:
+    service = PolymarketOrderSubmissionService()
+    async with SessionLocal() as session:
+        result = await get_signing_intent_for_trade_order(session, telegram_id, order_id)
+        if not result:
+            return "Order not found."
+        order, intent = result
+        if order.status not in RETRYABLE_ORDER_STATUSES:
+            return (
+                f"Order #{order.id} is not retryable because status is {_status_label(order.status)}.\n"
+                f"Next: {_next_action(order)}"
+            )
+        if not intent.signature:
+            return "This order has no verified wallet signature yet, so it cannot be retried."
+        try:
+            submission = service.submit_verified_intent(intent).as_dict()
+            updated = await update_trade_order_retry(session, intent, order, submission)
+        except OrderSubmissionError as exc:
+            return (
+                "Retry failed\n"
+                "------------\n"
+                f"{exc}\n\n"
+                "Run /status to verify live submission settings, then retry again."
+            )
+
+    return (
+        "Order retry complete\n"
+        "--------------------\n"
+        f"Order #{updated.id}\n"
+        f"Status: {_status_label(updated.status)}\n"
+        f"Polymarket order: {updated.polymarket_order_id or '-'}\n\n"
+        f"Next: {_next_action(updated)}"
+    )
+
+
+def _format_order_dashboard(orders) -> str:
+    counts = _order_status_counts(orders)
+    lines = [
+        "Order dashboard",
+        "---------------",
+        _format_counts(counts),
+        "",
+        "Tap an order below to view details or take action.",
+    ]
+    for order in orders:
+        lines.extend(
+            [
+                "",
+                f"#{order.id} {_status_label(order.status)}",
+                order.market_question[:72],
+                f"{order.order_type} {order.side} - {float(order.amount_usdc):.2f} USDC",
+                f"Limit ${float(order.limit_price):.4f} - Shares {float(order.shares):.2f}",
+                f"Next: {_next_action(order)}",
+            ]
+        )
+    return "\n".join(lines)
 
 
 def _format_order_detail(order) -> str:
@@ -273,3 +381,10 @@ def _next_action(order) -> str:
         "EXPIRED": "Expired. Try a new order if you still want this position.",
     }
     return actions.get(order.status, "Use /sync_orders for the latest status.")
+
+
+async def _reply_or_edit(update: Update, text: str, reply_markup=None) -> None:
+    if update.callback_query:
+        await update.callback_query.edit_message_text(text, reply_markup=reply_markup)
+        return
+    await update.effective_message.reply_text(text, reply_markup=reply_markup)

@@ -156,6 +156,70 @@ def bet_confirm_keyboard() -> InlineKeyboardMarkup:
     )
 
 
+def orders_dashboard_keyboard(orders: list) -> InlineKeyboardMarkup:
+    rows = []
+    for order in orders[:10]:
+        rows.append([InlineKeyboardButton(f"Order #{order.id}", callback_data=f"order_detail:{order.id}")])
+    rows.append(
+        [
+            InlineKeyboardButton("Sync orders", callback_data="order_sync_all"),
+            InlineKeyboardButton("Home", callback_data="home"),
+        ]
+    )
+    return InlineKeyboardMarkup(rows)
+
+
+def order_actions_keyboard(order) -> InlineKeyboardMarkup:
+    rows = []
+    if order.status in {"SIGNED", "SIGNED_PENDING_SUBMISSION", "FAILED", "CONFIGURATION_MISSING"}:
+        rows.append([InlineKeyboardButton("Retry", callback_data=f"order_retry:{order.id}")])
+    if order.status in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}:
+        rows.append(
+            [
+                InlineKeyboardButton("Sync", callback_data="order_sync_all"),
+                InlineKeyboardButton("Cancel", callback_data=f"order_cancel:{order.id}"),
+            ]
+        )
+    rows.append(
+        [
+            InlineKeyboardButton("Back to orders", callback_data="order_back"),
+            InlineKeyboardButton("Home", callback_data="home"),
+        ]
+    )
+    return InlineKeyboardMarkup(rows)
+
+
+def order_result_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Back to orders", callback_data="order_back")],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
+    )
+
+
+def portfolio_keyboard(positions: list) -> InlineKeyboardMarkup:
+    rows = []
+    for position in positions[:10]:
+        rows.append([InlineKeyboardButton(f"Position #{position.id}", callback_data=f"position_detail:{position.id}")])
+    rows.append(
+        [
+            InlineKeyboardButton("P&L", callback_data="portfolio_pnl"),
+            InlineKeyboardButton("Home", callback_data="home"),
+        ]
+    )
+    return InlineKeyboardMarkup(rows)
+
+
+def portfolio_result_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Back to portfolio", callback_data="portfolio_back")],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
+    )
+
+
 def position_actions_keyboard(position_id: int) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
@@ -164,6 +228,10 @@ def position_actions_keyboard(position_id: int) -> InlineKeyboardMarkup:
                 InlineKeyboardButton("Sell", callback_data=f"position_sell:{position_id}"),
             ],
             [InlineKeyboardButton("Share", callback_data=f"position_share:{position_id}")],
+            [
+                InlineKeyboardButton("Back to portfolio", callback_data="portfolio_back"),
+                InlineKeyboardButton("Home", callback_data="home"),
+            ],
         ]
     )
 
