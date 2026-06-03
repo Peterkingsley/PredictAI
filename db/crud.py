@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Alert, Position, SigningIntent, TradeOrder, User, Wallet
+from db.models import Alert, FastTradingAuthorization, Position, SigningIntent, TradeOrder, User, Wallet
 
 
 async def get_or_create_user(session: AsyncSession, telegram_id: int, username: str | None = None) -> User:
@@ -120,6 +120,74 @@ async def disconnect_wallets(session: AsyncSession, telegram_id: int) -> int:
         await session.delete(wallet)
     await session.commit()
     return len(wallets)
+
+
+async def get_fast_trading_authorization(
+    session: AsyncSession,
+    telegram_id: int,
+    wallet_address: str | None = None,
+) -> FastTradingAuthorization | None:
+    user = await get_user_by_telegram_id(session, telegram_id)
+    if not user:
+        return None
+    query = select(FastTradingAuthorization).where(
+        FastTradingAuthorization.user_id == user.id,
+        FastTradingAuthorization.status == "ACTIVE",
+        FastTradingAuthorization.expires_at > datetime.utcnow(),
+    )
+    if wallet_address:
+        query = query.where(FastTradingAuthorization.wallet_address == wallet_address.lower())
+    result = await session.execute(query.order_by(FastTradingAuthorization.created_at.desc()))
+    return result.scalar_one_or_none()
+
+
+async def upsert_fast_trading_authorization(
+    session: AsyncSession,
+    telegram_id: int,
+    wallet_address: str,
+    max_order_usdc: float,
+    daily_limit_usdc: float,
+    expires_at: datetime,
+    authorization_message: str,
+    authorization_signature: str,
+    metadata: dict | None = None,
+) -> FastTradingAuthorization:
+    user = await get_or_create_user(session, telegram_id=telegram_id)
+    normalized = wallet_address.lower()
+    await session.execute(
+        update(FastTradingAuthorization)
+        .where(
+            FastTradingAuthorization.user_id == user.id,
+            FastTradingAuthorization.wallet_address == normalized,
+            FastTradingAuthorization.status == "ACTIVE",
+        )
+        .values(status="REPLACED", revoked_at=datetime.utcnow())
+    )
+    authorization = FastTradingAuthorization(
+        user_id=user.id,
+        wallet_address=normalized,
+        status="ACTIVE",
+        max_order_usdc=max_order_usdc,
+        daily_limit_usdc=daily_limit_usdc,
+        expires_at=expires_at,
+        authorization_message=authorization_message,
+        authorization_signature=authorization_signature,
+        auth_metadata=metadata or {},
+    )
+    session.add(authorization)
+    await session.commit()
+    await session.refresh(authorization)
+    return authorization
+
+
+async def revoke_fast_trading_authorization(session: AsyncSession, telegram_id: int) -> bool:
+    authorization = await get_fast_trading_authorization(session, telegram_id)
+    if not authorization:
+        return False
+    authorization.status = "REVOKED"
+    authorization.revoked_at = datetime.utcnow()
+    await session.commit()
+    return True
 
 
 async def list_open_positions(session: AsyncSession, telegram_id: int) -> list[Position]:

@@ -3,7 +3,7 @@ import logging
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from api.config import get_settings
-from bot.handlers import admin, alerts, analyze, markets, onboarding, orders, portfolio, simulate, status, trade, wallets
+from bot.handlers import admin, alerts, analyze, fast_trading, markets, onboarding, orders, portfolio, simulate, status, trade, wallets
 from db.models import init_db
 
 logging.basicConfig(
@@ -39,6 +39,7 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("retry_order", orders.retry_order_command))
     app.add_handler(CommandHandler("cancel_order", orders.cancel_order_command))
     app.add_handler(CommandHandler("status", status.trading_status_command))
+    app.add_handler(CommandHandler("fast_trading", fast_trading.fast_trading_command))
     app.add_handler(CommandHandler("admin_status", admin.admin_status_command))
     app.add_handler(CommandHandler("admin_grant", admin.admin_grant_command))
     app.add_handler(CommandHandler("admin_revoke", admin.admin_revoke_command))
@@ -56,6 +57,7 @@ def build_app() -> Application:
     app.add_handler(CallbackQueryHandler(trade.trade_callback, pattern=r"^bet_(side|amount|back|confirm|cancel)"))
     app.add_handler(CallbackQueryHandler(orders.order_callback, pattern=r"^order_(detail|cancel|retry|sync_all|back)(:|$)"))
     app.add_handler(CallbackQueryHandler(portfolio.portfolio_callback, pattern=r"^(position_(detail|sell|share):|portfolio_(back|pnl)$)"))
+    app.add_handler(CallbackQueryHandler(fast_trading.fast_trading_callback, pattern=r"^fast_trading_(status|disable)$"))
     app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, trade.custom_amount_message))
     app.add_handler(CallbackQueryHandler(onboarding.generic_callback))
     return app

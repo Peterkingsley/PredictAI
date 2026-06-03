@@ -52,6 +52,7 @@ def status_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton("Orders", callback_data="orders"),
                 InlineKeyboardButton("Wallet", callback_data="wallets"),
             ],
+            [InlineKeyboardButton("Fast trading", callback_data="fast_trading_status")],
             [InlineKeyboardButton("Home", callback_data="home")],
         ]
     )
@@ -121,6 +122,7 @@ def wallet_actions_keyboard(has_wallet: bool = False) -> InlineKeyboardMarkup:
         buttons.append([InlineKeyboardButton("Connect wallet", callback_data="connect")])
     if has_wallet:
         buttons.append([InlineKeyboardButton("Browse markets", callback_data="markets")])
+        buttons.append([InlineKeyboardButton("Fast trading", callback_data="fast_trading_status")])
     buttons.append(
         [
             InlineKeyboardButton("Orders", callback_data="orders"),

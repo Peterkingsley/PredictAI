@@ -590,6 +590,82 @@ function ConnectionProofButton({ walletState, proof, onProofReady }) {
   );
 }
 
+function FastTradingPanel({ telegramId, walletState }) {
+  const [authState, setAuthState] = useState("idle");
+  const [authMessage, setAuthMessage] = useState("");
+  const { signMessageAsync } = useSignMessage();
+  const canAuthorize = Boolean(apiBaseUrl && telegramId && walletState.isConnected && walletState.isPolygon && isAddress(walletState.address));
+
+  async function enableFastTrading() {
+    setAuthState("preparing");
+    setAuthMessage("");
+    try {
+      const request = {
+        telegram_id: Number(telegramId),
+        wallet_address: walletState.address,
+        max_order_usdc: 25,
+        daily_limit_usdc: 100,
+      };
+      const prepareResponse = await fetch(buildApiUrl("/wallet/fast-trading/prepare"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(request),
+      });
+      if (!prepareResponse.ok) {
+        throw new Error(`Fast trading setup failed (${prepareResponse.status})`);
+      }
+      const prepared = await prepareResponse.json();
+      setAuthState("signing");
+      const signature = await signMessageAsync({ message: prepared.message });
+      setAuthState("saving");
+      const authorizeResponse = await fetch(buildApiUrl("/wallet/fast-trading/authorize"), {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...request, message: prepared.message, signature, expires_at: prepared.expires_at }),
+      });
+      if (!authorizeResponse.ok) {
+        const error = await authorizeResponse.json().catch(() => ({}));
+        throw new Error(error.detail || `Fast trading authorization failed (${authorizeResponse.status})`);
+      }
+      setAuthState("enabled");
+      setAuthMessage("Fast trading authorization saved. Return to Telegram to continue.");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("success");
+    } catch (error) {
+      setAuthState("error");
+      setAuthMessage(error.message || "Unable to enable fast trading.");
+      window.Telegram?.WebApp?.HapticFeedback?.notificationOccurred?.("error");
+    }
+  }
+
+  if (!apiBaseUrl || !telegramId) {
+    return null;
+  }
+
+  return (
+    <div className="signing-card">
+      <p className="label">Fast trading</p>
+      <p className="status">
+        Sign once to authorize Telegram-confirmed orders up to 25 USDC each and 100 USDC per day.
+      </p>
+      <p className="helper-text">
+        This records your permission and limits. PredictAI never receives your private key.
+      </p>
+      {authMessage ? <p className={authState === "enabled" ? "status good" : "status warning-text"}>{authMessage}</p> : null}
+      <button className="primary" disabled={!canAuthorize || ["preparing", "signing", "saving"].includes(authState)} onClick={enableFastTrading}>
+        {authState === "preparing"
+          ? "Preparing..."
+          : authState === "signing"
+            ? "Opening wallet..."
+            : authState === "saving"
+              ? "Saving..."
+              : authState === "enabled"
+                ? "Fast trading enabled"
+                : "Enable fast trading"}
+      </button>
+    </div>
+  );
+}
+
 function App() {
   const [status, setStatus] = useState("Ready");
   const [intentId] = useState(getIntentId);
@@ -753,6 +829,8 @@ function App() {
         {!intentId ? (
           <ConnectionProofButton walletState={walletState} proof={connectionProof} onProofReady={setConnectionProof} />
         ) : null}
+
+        {!intentId ? <FastTradingPanel telegramId={telegramId} walletState={walletState} /> : null}
 
         <button
           className="primary"

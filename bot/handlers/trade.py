@@ -21,7 +21,7 @@ from bot.keyboards import (
     connect_wallet_keyboard,
     recovery_keyboard,
 )
-from db.crud import create_signing_intent, get_active_wallet, update_signing_intent_payload
+from db.crud import create_signing_intent, get_active_wallet, get_fast_trading_authorization, update_signing_intent_payload
 from db.models import SessionLocal
 
 service = PolymarketService()
@@ -314,6 +314,7 @@ async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, am
         return
 
     flow.update({"amount": amount, "price": price, "shares": shares})
+    fast_trading_note = await _fast_trading_review_note(update.effective_user.id, flow["wallet_address"])
     await _reply_or_edit(
         update,
         "Review order\n"
@@ -325,6 +326,7 @@ async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, am
         f"Shares: {shares:.2f}\n"
         f"Max payout: {shares:.2f} USDC\n"
         f"Wallet: {short_address(flow['wallet_address'])}\n\n"
+        f"{fast_trading_note}\n"
         "Next step: continue to wallet signing. No order is submitted until signing and backend checks complete.",
         reply_markup=bet_confirm_keyboard(),
     )
@@ -338,6 +340,17 @@ async def _wallet_balance_text(wallet_address: str) -> str:
     if balance is None:
         return "USDC balance: unavailable"
     return f"USDC balance: {balance:.2f}"
+
+
+async def _fast_trading_review_note(telegram_id: int, wallet_address: str) -> str:
+    async with SessionLocal() as session:
+        authorization = await get_fast_trading_authorization(session, telegram_id, wallet_address)
+    if not authorization:
+        return "Fast trading: not enabled."
+    return (
+        "Fast trading: authorized for Telegram-confirmed orders. "
+        "Wallet signing is still required until delegated order signing is configured."
+    )
 
 
 async def _pre_trade_validation(

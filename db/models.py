@@ -32,6 +32,23 @@ class Wallet(Base):
     connected_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
 
 
+class FastTradingAuthorization(Base):
+    __tablename__ = "fast_trading_authorizations"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    wallet_address: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(String(16), default="ACTIVE", index=True)
+    max_order_usdc: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
+    daily_limit_usdc: Mapped[float] = mapped_column(Numeric(18, 6), nullable=False)
+    expires_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    authorization_message: Mapped[str] = mapped_column(Text, nullable=False)
+    authorization_signature: Mapped[str] = mapped_column(Text, nullable=False)
+    auth_metadata: Mapped[dict] = mapped_column("metadata", JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    revoked_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
 class Position(Base):
     __tablename__ = "positions"
 
