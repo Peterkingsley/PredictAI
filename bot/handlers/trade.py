@@ -95,7 +95,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await query.edit_message_text(
                 "Order cannot be prepared yet\n"
                 "----------------------------\n"
-                + "\n".join(f"- {error}" for error in validation_errors)
+                + _format_pre_trade_errors(validation_errors)
                 + "\n\nAdjust the amount or try another market.",
                 reply_markup=bet_amount_keyboard(),
             )
@@ -137,7 +137,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await query.edit_message_text(
                 "Order blocked before signing\n"
                 "----------------------------\n"
-                + "\n".join(f"- {error}" for error in validation_errors)
+                + _format_pre_trade_errors(validation_errors)
             )
             return
 
@@ -228,6 +228,31 @@ async def _pre_trade_validation(
     if balance is not None and balance < amount:
         errors.append(f"Wallet USDC balance is {balance:.2f}, below {amount:.2f} USDC.")
     return errors
+
+
+def _format_pre_trade_errors(errors: list[str]) -> str:
+    lines = []
+    for error in errors:
+        lines.append(f"- {error}")
+        hint = _pre_trade_hint(error)
+        if hint:
+            lines.append(f"  Fix: {hint}")
+    return "\n".join(lines)
+
+
+def _pre_trade_hint(error: str) -> str:
+    lowered = error.lower()
+    if "live submission" in lowered or "polymarket_order_submission_enabled" in lowered:
+        return "Run /status and enable live submission only after the API is in an allowed region."
+    if "minimum order size" in lowered:
+        return "Choose a larger amount."
+    if "usdc balance" in lowered:
+        return "Fund the connected Polygon wallet with enough USDC."
+    if "market is not active" in lowered or "token is missing" in lowered:
+        return "Use /markets or /search to pick another live market."
+    if "greater than zero" in lowered:
+        return "Choose a valid amount."
+    return ""
 
 
 def _build_order_intent_typed_data(intent_id: int, payload: dict) -> dict:
