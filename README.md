@@ -54,3 +54,5 @@ Use `docs/LAUNCH_CHECKLIST.md` before enabling live trading. Run the smoke test 
 ```bash
 python scripts/smoke_test.py --api-base-url https://YOUR-API-DOMAIN --telegram --redis
 ```
+
+After each deployment, follow `docs/DEPLOYMENT_VERIFICATION_RUNBOOK.md` to verify API, bot, Mini App, workers, beat, WalletConnect, order reconciliation, and rollback readiness.
