@@ -142,7 +142,11 @@ def bet_amount_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton("$25", callback_data="bet_amount:25"),
                 InlineKeyboardButton("$50", callback_data="bet_amount:50"),
             ],
-            [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],
+            [InlineKeyboardButton("Custom amount", callback_data="bet_amount_custom")],
+            [
+                InlineKeyboardButton("Back", callback_data="bet_back_side"),
+                InlineKeyboardButton("Cancel", callback_data="bet_cancel"),
+            ],
         ]
     )
 
@@ -151,6 +155,22 @@ def bet_confirm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [InlineKeyboardButton("Confirm order", callback_data="bet_confirm")],
+            [
+                InlineKeyboardButton("Back", callback_data="bet_back_amount"),
+                InlineKeyboardButton("Cancel", callback_data="bet_cancel"),
+            ],
+        ]
+    )
+
+
+def bet_blocked_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Choose amount", callback_data="bet_back_amount")],
+            [
+                InlineKeyboardButton("Back to market", callback_data="market:selected"),
+                InlineKeyboardButton("Status", callback_data="status"),
+            ],
             [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],
         ]
     )

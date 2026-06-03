@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from io import BytesIO
+import math
 from urllib.parse import urlencode
 
 import qrcode
@@ -12,7 +13,7 @@ from api.config import get_settings
 from api.services.order_submission import PolymarketOrderSubmissionService
 from api.services.polymarket import PolymarketService
 from api.services.wallets import get_usdc_balance, is_evm_address, short_address
-from bot.keyboards import bet_amount_keyboard, bet_confirm_keyboard, bet_side_keyboard
+from bot.keyboards import bet_amount_keyboard, bet_blocked_keyboard, bet_confirm_keyboard, bet_side_keyboard
 from db.crud import create_signing_intent, get_active_wallet, update_signing_intent_payload
 from db.models import SessionLocal
 
@@ -53,11 +54,7 @@ async def start_bet_flow(update: Update, context: ContextTypes.DEFAULT_TYPE, mar
         "market": market,
         "wallet_address": wallet.address,
     }
-    await _reply_or_edit(
-        update,
-        f"{market['question']}\nWhich side?\n\nYes - {market['probability']:.0f}%\nNo - {100 - market['probability']:.0f}%",
-        reply_markup=bet_side_keyboard(),
-    )
+    await _show_side_step(update, context)
 
 
 async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -69,50 +66,43 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text("Bet flow expired. Use /bet [market] to start again.")
         return
 
+    if action == "bet_back_side":
+        flow.pop("side", None)
+        flow.pop("amount", None)
+        flow.pop("price", None)
+        flow.pop("shares", None)
+        flow.pop("awaiting_custom_amount", None)
+        await _show_side_step(update, context)
+        return
+
+    if action == "bet_back_amount":
+        flow.pop("amount", None)
+        flow.pop("price", None)
+        flow.pop("shares", None)
+        flow.pop("awaiting_custom_amount", None)
+        await _show_amount_step(update, context)
+        return
+
     if action.startswith("bet_side:"):
         side = action.split(":", 1)[1]
         flow["side"] = side
+        await _show_amount_step(update, context)
+        return
+
+    if action == "bet_amount_custom":
+        flow["awaiting_custom_amount"] = True
         await query.edit_message_text(
-            f"Betting {side}\nHow much USDC?\n\nWallet: {short_address(flow['wallet_address'])}",
+            "Custom amount\n"
+            "-------------\n"
+            "Type the USDC amount you want to use for this order.\n\n"
+            "Example: 12.50",
             reply_markup=bet_amount_keyboard(),
         )
         return
 
     if action.startswith("bet_amount:"):
         amount = float(action.split(":", 1)[1])
-        market = flow["market"]
-        side = flow["side"]
-        price = _price_for_side(market, side)
-        shares = amount / price if price > 0 else 0
-        validation_errors = await _pre_trade_validation(
-            market=market,
-            side=side,
-            amount=amount,
-            shares=shares,
-            wallet_address=flow["wallet_address"],
-        )
-        if validation_errors:
-            await query.edit_message_text(
-                "Order cannot be prepared yet\n"
-                "----------------------------\n"
-                + _format_pre_trade_errors(validation_errors)
-                + "\n\nAdjust the amount or try another market.",
-                reply_markup=bet_amount_keyboard(),
-            )
-            return
-        flow.update({"amount": amount, "price": price, "shares": shares})
-        await query.edit_message_text(
-            "Confirm your order\n"
-            "------------------\n"
-            f"Market: {market['question']}\n"
-            f"Position: {side}\n"
-            f"Amount: {amount:.2f} USDC\n"
-            f"Entry price: ${price:.2f}\n"
-            f"Shares: {shares:.2f}\n"
-            f"Max payout: {shares:.2f} USDC\n\n"
-            "Next step: sign this order with your connected wallet.",
-            reply_markup=bet_confirm_keyboard(),
-        )
+        await _prepare_amount(update, context, amount)
         return
 
     if action == "bet_cancel":
@@ -137,7 +127,8 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             await query.edit_message_text(
                 "Order blocked before signing\n"
                 "----------------------------\n"
-                + _format_pre_trade_errors(validation_errors)
+                + _format_pre_trade_errors(validation_errors),
+                reply_markup=bet_blocked_keyboard(),
             )
             return
 
@@ -188,6 +179,31 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
 
 
+async def custom_amount_message(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    flow = context.user_data.get("bet_flow")
+    if not flow or not flow.get("awaiting_custom_amount"):
+        return
+
+    raw_amount = (update.effective_message.text or "").strip().replace("$", "")
+    try:
+        amount = float(raw_amount)
+    except ValueError:
+        await update.effective_message.reply_text(
+            "That amount was not clear. Type a number like 10 or 12.50.",
+            reply_markup=bet_amount_keyboard(),
+        )
+        return
+    if not math.isfinite(amount):
+        await update.effective_message.reply_text(
+            "That amount was not valid. Type a normal number like 10 or 12.50.",
+            reply_markup=bet_amount_keyboard(),
+        )
+        return
+
+    flow.pop("awaiting_custom_amount", None)
+    await _prepare_amount(update, context, amount)
+
+
 def _price_for_side(market: dict, side: str) -> float:
     if side == "YES":
         return max(float(market.get("yes_price") or market.get("probability", 0) / 100), 0.01)
@@ -198,6 +214,112 @@ def _token_id_for_side(market: dict, side: str) -> str | None:
     if side == "YES":
         return market.get("yes_token_id")
     return market.get("no_token_id")
+
+
+async def _show_side_step(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    flow = context.user_data["bet_flow"]
+    market = flow["market"]
+    await _reply_or_edit(
+        update,
+        f"{market['question']}\n"
+        "Choose side\n"
+        "-----------\n"
+        f"Yes: {market['probability']:.0f}% at ${_price_for_side(market, 'YES'):.2f}\n"
+        f"No: {100 - market['probability']:.0f}% at ${_price_for_side(market, 'NO'):.2f}\n\n"
+        "Choose the side you want to buy.",
+        reply_markup=bet_side_keyboard(),
+    )
+
+
+async def _show_amount_step(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    flow = context.user_data["bet_flow"]
+    side = flow.get("side")
+    if not side:
+        await _show_side_step(update, context)
+        return
+    market = flow["market"]
+    balance_text = await _wallet_balance_text(flow["wallet_address"])
+    price = _price_for_side(market, side)
+    await _reply_or_edit(
+        update,
+        "Choose amount\n"
+        "-------------\n"
+        f"Market: {market['question']}\n"
+        f"Position: {side}\n"
+        f"Entry price: ${price:.2f}\n"
+        f"Wallet: {short_address(flow['wallet_address'])}\n"
+        f"{balance_text}\n\n"
+        "Choose a preset amount or tap Custom amount.",
+        reply_markup=bet_amount_keyboard(),
+    )
+
+
+async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, amount: float) -> None:
+    flow = context.user_data.get("bet_flow")
+    if not flow:
+        await _reply_or_edit(update, "Bet flow expired. Use /bet [market] to start again.")
+        return
+    if not flow.get("side"):
+        await _show_side_step(update, context)
+        return
+    if not math.isfinite(amount):
+        await _reply_or_edit(
+            update,
+            "That amount was not valid. Choose a preset amount or type a normal number.",
+            reply_markup=bet_amount_keyboard(),
+        )
+        return
+
+    market = flow["market"]
+    side = flow["side"]
+    price = _price_for_side(market, side)
+    shares = amount / price if price > 0 else 0
+    validation_errors = await _pre_trade_validation(
+        market=market,
+        side=side,
+        amount=amount,
+        shares=shares,
+        wallet_address=flow["wallet_address"],
+    )
+    if validation_errors:
+        await _reply_or_edit(
+            update,
+            "Order cannot be prepared yet\n"
+            "----------------------------\n"
+            f"Market: {market['question']}\n"
+            f"Position: {side}\n"
+            f"Amount: {amount:.2f} USDC\n\n"
+            + _format_pre_trade_errors(validation_errors)
+            + "\n\nChoose another amount, check status, or return to the market.",
+            reply_markup=bet_blocked_keyboard(),
+        )
+        return
+
+    flow.update({"amount": amount, "price": price, "shares": shares})
+    await _reply_or_edit(
+        update,
+        "Confirm your order\n"
+        "------------------\n"
+        f"Market: {market['question']}\n"
+        f"Position: {side}\n"
+        f"Amount: {amount:.2f} USDC\n"
+        f"Entry price: ${price:.2f}\n"
+        f"Shares: {shares:.2f}\n"
+        f"Max payout: {shares:.2f} USDC\n"
+        f"Wallet: {short_address(flow['wallet_address'])}\n\n"
+        "Next step: sign this order with your connected wallet.",
+        reply_markup=bet_confirm_keyboard(),
+    )
+
+
+async def _wallet_balance_text(wallet_address: str) -> str:
+    try:
+        balance = await get_usdc_balance(wallet_address)
+    except Exception:
+        balance = None
+    if balance is None:
+        return "USDC balance: unavailable"
+    return f"USDC balance: {balance:.2f}"
 
 
 async def _pre_trade_validation(
