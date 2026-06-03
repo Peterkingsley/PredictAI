@@ -111,8 +111,25 @@ function isTelegramWebApp() {
   return Boolean(webApp?.initData || window.location.hash.includes("tgWebAppData"));
 }
 
+function isMobileBrowser() {
+  return /Android|iPhone|iPad|iPod|Mobile/i.test(window.navigator.userAgent || "");
+}
+
+function hasInjectedWallet() {
+  return Boolean(window.ethereum);
+}
+
 function walletPageUrl() {
   return `${window.location.origin}${window.location.pathname}${window.location.search}`;
+}
+
+function walletBrowserLinks() {
+  const url = walletPageUrl();
+  const urlWithoutProtocol = url.replace(/^https?:\/\//, "");
+  return {
+    metamask: `https://metamask.app.link/dapp/${urlWithoutProtocol}`,
+    trust: `https://link.trustwallet.com/open_url?coin_id=966&url=${encodeURIComponent(url)}`,
+  };
 }
 
 function WalletConnectControls({ onWalletDetected, onWalletState }) {
@@ -120,9 +137,10 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
   const { disconnect } = useDisconnect();
   const { address, isConnected, status } = useAppKitAccount({ namespace: "eip155" });
   const { chainId, switchNetwork } = useAppKitNetwork();
-  const [allowTelegramConnect, setAllowTelegramConnect] = useState(false);
+  const [allowWalletConnect, setAllowWalletConnect] = useState(false);
+  const [copyStatus, setCopyStatus] = useState("");
   const isPolygon = Number(chainId) === Number(requiredNetwork.id);
-  const shouldUseExternalBrowser = isTelegramWebApp() && !isConnected && !allowTelegramConnect;
+  const shouldUseWalletBrowser = isMobileBrowser() && !hasInjectedWallet() && !isConnected && !allowWalletConnect;
 
   useEffect(() => {
     onWalletState({
@@ -144,13 +162,23 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
     }
   }
 
-  function openWalletPageExternally() {
-    const url = walletPageUrl();
-    if (window.Telegram?.WebApp?.openLink) {
+  function openWalletBrowser(walletName) {
+    const links = walletBrowserLinks();
+    const url = links[walletName] || walletPageUrl();
+    if (isTelegramWebApp() && window.Telegram?.WebApp?.openLink) {
       window.Telegram.WebApp.openLink(url, { try_instant_view: false });
       return;
     }
     window.open(url, "_blank", "noopener,noreferrer");
+  }
+
+  async function copyWalletPageLink() {
+    try {
+      await navigator.clipboard.writeText(walletPageUrl());
+      setCopyStatus("Link copied. Paste it into your wallet browser.");
+    } catch {
+      setCopyStatus("Copy blocked. Use your browser share button to copy this page link.");
+    }
   }
 
   function openWalletModal() {
@@ -166,18 +194,27 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
         </p>
       </div>
 
-      {shouldUseExternalBrowser ? (
+      {shouldUseWalletBrowser ? (
         <div className="browser-route">
-          <p className="label">Best on mobile browser</p>
+          <p className="label">Use a wallet browser</p>
           <p className="status">
-            Telegram can block wallet app handoff. Open this same page in your phone browser, then choose your wallet.
+            WalletConnect is not completing on this device. Open PredictAI inside your wallet app browser, then tap Connect there.
           </p>
-          <button className="primary" onClick={openWalletPageExternally}>
-            Open wallet page
+          <div className="wallet-browser-grid">
+            <button className="primary" onClick={() => openWalletBrowser("metamask")}>
+              MetaMask
+            </button>
+            <button className="primary" onClick={() => openWalletBrowser("trust")}>
+              Trust Wallet
+            </button>
+          </div>
+          <button className="secondary" onClick={copyWalletPageLink}>
+            Copy page link
           </button>
-          <button className="secondary" onClick={() => setAllowTelegramConnect(true)}>
-            Try inside Telegram
+          <button className="secondary" onClick={() => setAllowWalletConnect(true)}>
+            Try Reown WalletConnect
           </button>
+          {copyStatus ? <p className="helper-text">{copyStatus}</p> : null}
         </div>
       ) : (
         <div className="wallet-row">
