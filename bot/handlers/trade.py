@@ -40,9 +40,9 @@ async def bet_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     if not market:
         await update.effective_message.reply_text(
-            "Prepare a bet\n"
-            "-------------\n"
-            "Open a market and tap Bet, or type /bet followed by a market keyword.",
+            "Prepare a position\n"
+            "------------------\n"
+            "Open a market and tap Prepare bet, or type /bet followed by a market topic. You will always review before signing.",
             reply_markup=recovery_keyboard(),
         )
         return
@@ -57,7 +57,9 @@ async def start_bet_flow(update: Update, context: ContextTypes.DEFAULT_TYPE, mar
     if not wallet:
         await _reply_or_edit(
             update,
-            "Wallet needed\nConnect a wallet before preparing an order.",
+            "Wallet needed\n"
+            "-------------\n"
+            "Connect a Polygon wallet before preparing an order request. Connecting does not place a trade.",
             reply_markup=connect_wallet_keyboard(update.effective_user.id),
         )
         return
@@ -76,7 +78,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     action = query.data
     flow = context.user_data.get("bet_flow")
     if not flow:
-        await query.edit_message_text("Bet flow expired. Open a market and tap Bet again.", reply_markup=recovery_keyboard())
+        await query.edit_message_text("This bet flow expired. Open a market and tap Prepare bet to start a fresh review.", reply_markup=recovery_keyboard())
         return
 
     if action == "bet_back_side":
@@ -107,7 +109,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text(
             "Custom amount\n"
             "-------------\n"
-            "Type the USDC amount you want to use for this order.\n\n"
+            "Type the USDC amount you want to use for this position.\n\n"
             "Example: 12.50",
             reply_markup=bet_amount_keyboard(),
         )
@@ -120,7 +122,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     if action == "bet_cancel":
         context.user_data.pop("bet_flow", None)
-        await query.edit_message_text("Bet cancelled.", reply_markup=recovery_keyboard())
+        await query.edit_message_text("Bet cancelled. No order was created.", reply_markup=recovery_keyboard())
         return
 
     if action == "bet_confirm":
@@ -128,7 +130,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         settings = get_settings()
         if not settings.mini_app_url:
             await query.edit_message_text(
-                "Signing is almost ready. Set MINI_APP_URL, then try again.",
+                "Signing is not available yet. Set MINI_APP_URL, then try again.",
                 reply_markup=recovery_keyboard(),
             )
             return
@@ -185,7 +187,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             "-----------------------\n"
             f"{float(flow['amount']):.2f} USDC on {flow['side']}\n"
             f"{market['question']}\n\n"
-            "Scan the QR code with MetaMask or Trust Wallet, approve in your wallet, then wait for Telegram confirmation."
+            "Open the signing page, approve in your wallet, then return to Telegram for confirmation."
         )
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
@@ -238,11 +240,11 @@ async def _show_side_step(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     await _reply_or_edit(
         update,
         f"{market['question']}\n"
-        "Choose side\n"
-        "-----------\n"
+        "Choose your position\n"
+        "--------------------\n"
         f"Yes: {market['probability']:.0f}% at ${_price_for_side(market, 'YES'):.2f}\n"
         f"No: {100 - market['probability']:.0f}% at ${_price_for_side(market, 'NO'):.2f}\n\n"
-        "Choose the side you want to buy.",
+        "Choose the outcome you want exposure to.",
         reply_markup=bet_side_keyboard(),
     )
 
@@ -265,7 +267,7 @@ async def _show_amount_step(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         f"Entry price: ${price:.2f}\n"
         f"Wallet: {short_address(flow['wallet_address'])}\n"
         f"{balance_text}\n\n"
-        "Choose a preset amount or tap Custom amount.",
+        "Choose a preset amount or enter a custom amount. You will review before signing.",
         reply_markup=bet_amount_keyboard(),
     )
 
@@ -273,7 +275,7 @@ async def _show_amount_step(update: Update, context: ContextTypes.DEFAULT_TYPE) 
 async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, amount: float) -> None:
     flow = context.user_data.get("bet_flow")
     if not flow:
-        await _reply_or_edit(update, "Bet flow expired. Use /bet [market] to start again.")
+        await _reply_or_edit(update, "This bet flow expired. Open a market and start a fresh review.", reply_markup=recovery_keyboard())
         return
     if not flow.get("side"):
         await _show_side_step(update, context)
@@ -306,7 +308,7 @@ async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, am
             f"Position: {side}\n"
             f"Amount: {amount:.2f} USDC\n\n"
             + _format_pre_trade_errors(validation_errors)
-            + "\n\nChoose another amount, check status, or return to the market.",
+            + "\n\nChoose another amount, check system status, or return to the market.",
             reply_markup=bet_blocked_keyboard(),
         )
         return
@@ -314,8 +316,8 @@ async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, am
     flow.update({"amount": amount, "price": price, "shares": shares})
     await _reply_or_edit(
         update,
-        "Confirm your order\n"
-        "------------------\n"
+        "Review order\n"
+        "------------\n"
         f"Market: {market['question']}\n"
         f"Position: {side}\n"
         f"Amount: {amount:.2f} USDC\n"
@@ -323,7 +325,7 @@ async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, am
         f"Shares: {shares:.2f}\n"
         f"Max payout: {shares:.2f} USDC\n"
         f"Wallet: {short_address(flow['wallet_address'])}\n\n"
-        "Next step: sign this order with your connected wallet.",
+        "Next step: continue to wallet signing. No order is submitted until signing and backend checks complete.",
         reply_markup=bet_confirm_keyboard(),
     )
 
@@ -387,7 +389,7 @@ def _format_pre_trade_errors(errors: list[str]) -> str:
 def _pre_trade_hint(error: str) -> str:
     lowered = error.lower()
     if "live submission" in lowered or "polymarket_order_submission_enabled" in lowered:
-        return "Run /status and enable live submission only after the API is in an allowed region."
+        return "Open Status and enable live submission only after the API is ready."
     if "minimum order size" in lowered:
         return "Choose a larger amount."
     if "usdc balance" in lowered:
@@ -397,7 +399,7 @@ def _pre_trade_hint(error: str) -> str:
     if "usdc allowance" in lowered:
         return "Approve USDC for the configured Polymarket spender, then try the order again."
     if "market is not active" in lowered or "token is missing" in lowered:
-        return "Use /markets or /search to pick another live market."
+        return "Open Markets or Search to pick another live market."
     if "greater than zero" in lowered:
         return "Choose a valid amount."
     return ""

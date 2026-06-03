@@ -139,7 +139,7 @@ def market_results_keyboard(markets: list[dict], include_back: bool = False) -> 
 def market_actions_keyboard(market_id: str, include_back: bool = False) -> InlineKeyboardMarkup:
     rows = [
         [
-            InlineKeyboardButton("Bet", callback_data="bet:selected"),
+            InlineKeyboardButton("Prepare bet", callback_data="bet:selected"),
             InlineKeyboardButton("Analyze", callback_data="analyze:selected"),
         ],
         [InlineKeyboardButton("Alert", callback_data="alert_market:selected")],
@@ -153,7 +153,7 @@ def analysis_result_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Bet", callback_data="bet:selected"),
+                InlineKeyboardButton("Prepare bet", callback_data="bet:selected"),
                 InlineKeyboardButton("Alert", callback_data="alert_market:selected"),
             ],
             [
@@ -169,7 +169,7 @@ def alert_result_keyboard(include_market: bool = True) -> InlineKeyboardMarkup:
     if include_market:
         rows.append(
             [
-                InlineKeyboardButton("Bet", callback_data="bet:selected"),
+                InlineKeyboardButton("Prepare bet", callback_data="bet:selected"),
                 InlineKeyboardButton("Market", callback_data="market:selected"),
             ]
         )
@@ -215,7 +215,7 @@ def bet_amount_keyboard() -> InlineKeyboardMarkup:
 def bet_confirm_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("Confirm order", callback_data="bet_confirm")],
+            [InlineKeyboardButton("Continue to signing", callback_data="bet_confirm")],
             [
                 InlineKeyboardButton("Back", callback_data="bet_back_amount"),
                 InlineKeyboardButton("Cancel", callback_data="bet_cancel"),
@@ -229,7 +229,7 @@ def bet_blocked_keyboard() -> InlineKeyboardMarkup:
         [
             [InlineKeyboardButton("Choose amount", callback_data="bet_back_amount")],
             [
-                InlineKeyboardButton("Back to market", callback_data="market:selected"),
+                InlineKeyboardButton("Market", callback_data="market:selected"),
                 InlineKeyboardButton("Status", callback_data="status"),
             ],
             [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],

@@ -11,8 +11,8 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
     ready = "ready" if report["ready"] else "not ready"
     missing = report["missing_configuration"]
     lines = [
-        "Trading status",
-        "--------------",
+        "System status",
+        "-------------",
         f"Live submission: {enabled}",
         f"Readiness: {ready}",
         f"Polymarket host: {report['host']}",
@@ -24,7 +24,7 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
         report["message"],
     ]
     if missing:
-        lines.extend(["", "Missing configuration:", *[f"- {item}" for item in missing]])
+        lines.extend(["", "Needs attention:", *[f"- {item}" for item in missing]])
     if update.callback_query:
         await update.callback_query.edit_message_text("\n".join(lines), reply_markup=status_keyboard())
         return

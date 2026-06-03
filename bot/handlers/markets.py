@@ -62,11 +62,16 @@ async def search_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
 async def market_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if not context.args:
-        await update.effective_message.reply_text("Usage: /market [market id]", reply_markup=recovery_keyboard())
+        await update.effective_message.reply_text(
+            "Open a market\n"
+            "-------------\n"
+            "Choose a market from Markets or Search, or use /market with a market id.",
+            reply_markup=recovery_keyboard(),
+        )
         return
     market = await service.get_market(context.args[0])
     if not market:
-        await update.effective_message.reply_text("Market not found.", reply_markup=recovery_keyboard())
+        await update.effective_message.reply_text("No matching market found. Try Markets or Search.", reply_markup=recovery_keyboard())
         return
     context.user_data["selected_market"] = market
     await update.effective_message.reply_text(
@@ -90,7 +95,7 @@ async def market_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     else:
         market = await service.get_market(market_id)
     if not market:
-        await query.edit_message_text("Market not found.", reply_markup=recovery_keyboard())
+        await query.edit_message_text("No matching market found. Try Markets or Search.", reply_markup=recovery_keyboard())
         return
     context.user_data["selected_market"] = market
     if action == "market":
@@ -143,14 +148,14 @@ async def _show_picked_market(update: Update, context: ContextTypes.DEFAULT_TYPE
         index = int(raw_index)
     except ValueError:
         await query.edit_message_text(
-            "This market list expired. Run /markets or /search again.",
+            "This market list expired. Open Markets or Search to refresh it.",
             reply_markup=recovery_keyboard(),
         )
         return
     markets = context.user_data.get("market_results") or []
     if index < 0 or index >= len(markets):
         await query.edit_message_text(
-            "This market list expired. Run /markets or /search again.",
+            "This market list expired. Open Markets or Search to refresh it.",
             reply_markup=recovery_keyboard(),
         )
         return
@@ -168,7 +173,7 @@ async def _show_previous_market_results(update: Update, context: ContextTypes.DE
     title = context.user_data.get("market_results_title") or "Markets"
     if not markets:
         await query.edit_message_text(
-            "This market list expired. Run /markets or /search again.",
+            "This market list expired. Open Markets or Search to refresh it.",
             reply_markup=recovery_keyboard(),
         )
         return

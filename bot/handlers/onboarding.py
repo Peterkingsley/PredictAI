@@ -37,9 +37,9 @@ async def generic_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
         return
     if query.data == "search_help":
         await query.edit_message_text(
-            "Search markets\n"
-            "--------------\n"
-            "Type /search followed by a keyword.\n\n"
+            "Search prediction markets\n"
+            "-------------------------\n"
+            "Tell PredictAI what topic you care about, then tap a result to inspect it.\n\n"
             "Examples:\n"
             "/search bitcoin\n"
             "/search election\n"
@@ -120,9 +120,9 @@ async def _home_text(telegram_id: int) -> tuple[str, bool]:
         "Choose an action below.",
     ]
     if not wallet:
-        lines.insert(-2, "Next best step: connect a wallet or browse markets first.")
+        lines.insert(-2, "Good first step: browse markets to learn the flow, or connect a wallet when you are ready to prepare orders.")
     elif not report["ready"]:
-        lines.insert(-2, "Live order submission is not fully ready, but analysis and order preparation still work.")
+        lines.insert(-2, "Analysis, alerts, and order preparation are available. Live submission still needs setup before real orders can be sent.")
     else:
-        lines.insert(-2, "You are ready to browse, analyze, and prepare orders.")
+        lines.insert(-2, "You are set up to browse markets, analyze odds, prepare positions, and track results.")
     return "\n".join(lines), bool(wallet)

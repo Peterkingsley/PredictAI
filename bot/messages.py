@@ -1,22 +1,24 @@
 from typing import Any
 
 START_TEXT = (
-    "PredictAI home\n"
-    "--------------\n"
-    "Browse live prediction markets, get AI analysis, connect a wallet, and prepare Polymarket orders from Telegram."
+    "Welcome to PredictAI\n"
+    "--------------------\n"
+    "Your Telegram assistant for prediction markets.\n\n"
+    "Use it to discover live markets, understand the odds, prepare Yes/No positions, set alerts, and track orders without leaving chat.\n\n"
+    "You stay in control: PredictAI never asks for private keys, and every wallet approval happens in your wallet."
 )
 
 HELP_TEXT = (
-    "Help menu\n"
-    "---------\n"
-    "Choose what you want to do. Most common actions now work from buttons inside chat."
+    "How PredictAI works\n"
+    "-------------------\n"
+    "Pick what you want to do next. The main flows work through buttons, and power commands are still available when you want them."
 )
 
 HELP_SECTIONS = {
     "markets": (
-        "Markets\n"
-        "-------\n"
-        "Use Markets for popular live markets, New for recent markets, or Search when you know what you want.\n\n"
+        "Find markets\n"
+        "------------\n"
+        "Browse popular markets, check new opportunities, or search by topic. Tap any market to see odds, prices, volume, and next actions.\n\n"
         "Power commands:\n"
         "/markets\n"
         "/markets [category]\n"
@@ -25,25 +27,25 @@ HELP_SECTIONS = {
         "/market [id]"
     ),
     "trading": (
-        "Trading\n"
-        "-------\n"
-        "Open a market, tap Bet, choose Yes or No, select an amount, then review before signing. Wallet approval still happens in the Mini App.\n\n"
+        "Prepare a position\n"
+        "------------------\n"
+        "Open a market, tap Prepare bet, choose Yes or No, choose an amount, then review the order before signing. Signing happens in your connected wallet, not inside chat.\n\n"
         "Power command:\n"
         "/bet [market id or keyword]"
     ),
     "wallet": (
-        "Wallet\n"
-        "------\n"
-        "Connect a Polygon wallet before preparing orders. PredictAI never asks for private keys.\n\n"
+        "Wallet safety\n"
+        "-------------\n"
+        "Connect a Polygon wallet so PredictAI can prepare order requests. You approve every signing request yourself. PredictAI never asks for seed phrases, passwords, or private keys.\n\n"
         "Power commands:\n"
         "/connect\n"
         "/wallets\n"
         "/disconnect"
     ),
     "orders": (
-        "Orders\n"
-        "------\n"
-        "Orders show signed requests, submitted orders, fills, failures, and the next action.\n\n"
+        "Track orders and positions\n"
+        "--------------------------\n"
+        "Orders show what was signed, submitted, filled, failed, or waiting for action. Portfolio shows open positions and P&L snapshots.\n\n"
         "Power commands:\n"
         "/orders\n"
         "/sync_orders\n"
@@ -54,16 +56,16 @@ HELP_SECTIONS = {
         "/pnl"
     ),
     "alerts": (
-        "Alerts\n"
-        "------\n"
-        "Open a market and tap Alert, or create one by keyword. Alerts notify when Yes probability crosses your threshold.\n\n"
+        "Set alerts\n"
+        "----------\n"
+        "Use alerts when you want to watch a market without checking it constantly. PredictAI can notify you when the Yes probability crosses your chosen threshold.\n\n"
         "Power command:\n"
         "/alerts [market id or keyword]"
     ),
     "status": (
-        "Status\n"
-        "------\n"
-        "Status checks whether live order submission is enabled and whether required trading configuration is present.\n\n"
+        "System status\n"
+        "-------------\n"
+        "Status explains whether live submission is enabled and whether the trading configuration is ready. If something is blocked, it shows what needs attention.\n\n"
         "Power commands:\n"
         "/status\n"
         "/admin_status"
@@ -72,7 +74,7 @@ HELP_SECTIONS = {
 
 
 def format_market_list(title: str, markets: list[dict[str, Any]]) -> str:
-    lines = [title, "Live Polymarket markets", ""]
+    lines = [title, "Tap a number to inspect the market before taking action.", ""]
     for index, market in enumerate(markets[:10], start=1):
         closes = market.get("end_date") or "close unknown"
         lines.extend(
@@ -97,10 +99,10 @@ def format_market_detail(market: dict[str, Any]) -> str:
         "--------------------\n"
         f"Status: {status}\n"
         f"Category: {market['category']}\n"
-        f"Probability: {market['probability']:.0f}% Yes\n"
+        f"Market view: {market['probability']:.0f}% Yes\n"
         f"Yes price: ${market['yes_price']:.2f}\n"
         f"No price: ${market['no_price']:.2f}\n"
         f"Volume: ${float(market.get('volume') or 0):,.0f}\n"
         f"Closes: {market.get('end_date') or 'Unknown'}\n\n"
-        "Choose an action below."
+        "Next: analyze the market, set an alert, or prepare a position."
     )

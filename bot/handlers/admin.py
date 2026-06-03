@@ -53,7 +53,7 @@ async def admin_grant_command(update: Update, context: ContextTypes.DEFAULT_TYPE
         return
     target = _target_telegram_id(context)
     if not target:
-        await update.effective_message.reply_text("Usage: /admin_grant [telegram_id]", reply_markup=home_keyboard())
+        await update.effective_message.reply_text("Send /admin_grant followed by the Telegram ID to grant admin access.", reply_markup=home_keyboard())
         return
     async with SessionLocal() as session:
         await set_delegated_admin(session, target, True, granted_by=update.effective_user.id)
@@ -66,7 +66,7 @@ async def admin_revoke_command(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     target = _target_telegram_id(context)
     if not target:
-        await update.effective_message.reply_text("Usage: /admin_revoke [telegram_id]", reply_markup=home_keyboard())
+        await update.effective_message.reply_text("Send /admin_revoke followed by the Telegram ID to revoke admin access.", reply_markup=home_keyboard())
         return
     if target in _root_admin_ids():
         await update.effective_message.reply_text(

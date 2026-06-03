@@ -13,9 +13,9 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     target = " ".join(context.args) if context.args else ""
     if not target:
         await update.effective_message.reply_text(
-            "Analyze a market\n"
-            "----------------\n"
-            "Open a market and tap Analyze, or type /analyze followed by a keyword.",
+            "Get a market brief\n"
+            "------------------\n"
+            "Open a market and tap Analyze, or type /analyze followed by a topic. PredictAI will summarize the market view and key considerations.",
             reply_markup=recovery_keyboard(),
         )
         return
@@ -35,11 +35,12 @@ async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     context.user_data["selected_market"] = market
     report = await ai_service.analyze_market(market)
     text = (
-        "AI intelligence report\n"
-        "----------------------\n"
+        "Market brief\n"
+        "------------\n"
         f"{report['question']}\n\n"
-        f"Probability: {report['probability']:.0f}%\n"
-        f"{report['analysis']}"
+        f"Current market view: {report['probability']:.0f}% Yes\n\n"
+        f"{report['analysis']}\n\n"
+        "Use this as context, not financial advice. You can prepare a position, set an alert, or return to the market card."
     )
 
     if update.callback_query:

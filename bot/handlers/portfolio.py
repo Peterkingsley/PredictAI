@@ -24,7 +24,7 @@ async def portfolio_command(update: Update, context: ContextTypes.DEFAULT_TYPE) 
         await update.effective_message.reply_text(
             "Your portfolio\n"
             "--------------\n"
-            "No open positions yet.\n\nOpen a market and tap Bet to prepare one.",
+            "No open positions yet.\n\nWhen an order fills, PredictAI will show the position and P&L here. To start, open a market and tap Prepare bet.",
             reply_markup=recovery_keyboard(),
         )
         return
@@ -38,12 +38,12 @@ async def history_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     if not positions:
         await update.effective_message.reply_text(
-            "Order history\n-------------\nNo orders yet.",
+            "Order history\n-------------\nNo completed position history yet.",
             reply_markup=recovery_keyboard(),
         )
         return
 
-    lines = ["Order history", "-------------"]
+    lines = ["Position history", "----------------"]
     for position in positions:
         amount, shares, entry, current, value, pnl = _position_numbers(position)
         lines.extend(
@@ -90,13 +90,13 @@ async def position_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     try:
         position_id = int(command.rsplit("_", 1)[1])
     except (IndexError, ValueError):
-        await update.effective_message.reply_text("Usage: /position_[id]", reply_markup=portfolio_result_keyboard())
+        await update.effective_message.reply_text("Open Portfolio and tap a position to view details.", reply_markup=portfolio_result_keyboard())
         return
 
     async with SessionLocal() as session:
         position = await get_position(session, update.effective_user.id, position_id)
     if not position:
-        await update.effective_message.reply_text("Position not found.", reply_markup=portfolio_result_keyboard())
+        await update.effective_message.reply_text("That position could not be found. Open Portfolio to refresh the list.", reply_markup=portfolio_result_keyboard())
         return
 
     await update.effective_message.reply_text(
@@ -124,7 +124,7 @@ async def portfolio_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         position = await get_position(session, query.from_user.id, position_id)
 
     if not position:
-        await query.edit_message_text("Position not found.", reply_markup=portfolio_result_keyboard())
+        await query.edit_message_text("That position could not be found. Open Portfolio to refresh the list.", reply_markup=portfolio_result_keyboard())
         return
 
     if action == "position_share":
@@ -132,7 +132,7 @@ async def portfolio_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.edit_message_text(
             "Share preview\n"
             "-------------\n"
-            f"I placed a {position.side} order on PredictAI:\n"
+            f"PredictAI position: {position.side}\n"
             f"{position.market_question}\n"
             f"P&L: {pnl:+.2f} USDC",
             reply_markup=portfolio_result_keyboard(),
@@ -141,9 +141,9 @@ async def portfolio_callback(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     if action == "position_sell":
         await query.edit_message_text(
-            "Sell order flow is next\n"
-            "-----------------------\n"
-            "This position was not closed. Live sell order signing will use the same wallet approval flow.",
+            "Sell flow coming next\n"
+            "---------------------\n"
+            "This position was not closed. When live sell orders are enabled, closing a position will use the same wallet approval flow.",
             reply_markup=portfolio_result_keyboard(),
         )
         return
@@ -170,7 +170,7 @@ def _format_position_detail(position) -> str:
 
 def _format_portfolio_dashboard(positions) -> str:
     total_pnl = 0.0
-    lines = ["Your portfolio", "--------------", f"Open bets: {len(positions)}"]
+    lines = ["Portfolio", "---------", f"Open positions: {len(positions)}"]
     for position in positions[:10]:
         amount, shares, entry, current, value, pnl = _position_numbers(position)
         total_pnl += pnl
@@ -183,7 +183,7 @@ def _format_portfolio_dashboard(positions) -> str:
         )
     lines.insert(3, f"P&L: {total_pnl:+.2f} USDC")
     lines.append("")
-    lines.append("Tap a position below to view details.")
+    lines.append("Tap a position to see stake, shares, value, and P&L.")
     return "\n".join(lines)
 
 

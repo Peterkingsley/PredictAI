@@ -18,14 +18,14 @@ async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             alerts = await list_alerts(session, update.effective_user.id)
         if not alerts:
             await update.effective_message.reply_text(
-                "Alerts\n"
-                "------\n"
+                "Market alerts\n"
+                "-------------\n"
                 "No active alerts yet.\n\n"
-                "Open a market and tap Alert to create one.",
+                "Open a market and tap Alert when you want PredictAI to watch a probability level for you.",
                 reply_markup=alert_result_keyboard(include_market=False),
             )
             return
-        lines = ["Active alerts", "-------------"]
+        lines = ["Market alerts", "-------------", "PredictAI is watching these probability levels:"]
         for alert in alerts[:10]:
             lines.extend(
                 [
@@ -35,7 +35,7 @@ async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 ]
             )
         lines.append("")
-        lines.append("Open a market and tap Alert to create another one.")
+        lines.append("Open any market and tap Alert to watch another probability level.")
         await update.effective_message.reply_text(
             "\n".join(lines),
             reply_markup=alert_result_keyboard(include_market=bool(context.user_data.get("selected_market"))),
@@ -56,11 +56,11 @@ async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     context.user_data["alert_market"] = market
     await update.effective_message.reply_text(
-        "Set alert\n"
-        "---------\n"
+        "Set a market alert\n"
+        "------------------\n"
         f"{market['question']}\n\n"
         f"Current Yes probability: {market['probability']:.0f}%\n"
-        "Notify me when probability crosses:",
+        "Choose the Yes probability level you want to watch:",
         reply_markup=alert_threshold_keyboard(),
     )
 
@@ -73,13 +73,13 @@ async def alert_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     if action == "alert_cancel":
         has_market = bool(context.user_data.get("selected_market") or context.user_data.get("alert_market"))
         context.user_data.pop("alert_market", None)
-        await query.edit_message_text("Alert cancelled.", reply_markup=alert_result_keyboard(include_market=has_market))
+        await query.edit_message_text("Alert cancelled. You can return to markets or choose another action.", reply_markup=alert_result_keyboard(include_market=has_market))
         return
 
     market = context.user_data.get("alert_market")
     if not market:
         await query.edit_message_text(
-            "Alert setup expired. Open a market and tap Alert to start again.",
+            "This alert setup expired. Open a market and tap Alert to start again.",
             reply_markup=alert_result_keyboard(include_market=bool(context.user_data.get("selected_market"))),
         )
         return
@@ -99,9 +99,9 @@ async def alert_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     context.user_data.pop("alert_market", None)
     context.user_data["selected_market"] = market
     await query.edit_message_text(
-        "Alert set\n"
-        "---------\n"
+        "Alert is active\n"
+        "---------------\n"
         f"{alert.market_question}\n"
-        f"Notify when Yes probability crosses {float(alert.threshold):.0f}%.",
+        f"PredictAI will notify you when Yes probability crosses {float(alert.threshold):.0f}%.",
         reply_markup=alert_result_keyboard(include_market=True),
     )

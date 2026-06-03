@@ -14,7 +14,7 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     settings = get_settings()
     if not settings.mini_app_url:
         await update.effective_message.reply_text(
-            "Wallet connect is almost ready. Set MINI_APP_URL in Render, then redeploy the bot worker.",
+            "Wallet connection is not available yet. Set MINI_APP_URL in Render, redeploy the bot worker, then try again.",
             reply_markup=home_keyboard(),
         )
         return
@@ -22,8 +22,11 @@ async def connect_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     text = (
         "Connect your wallet\n"
         "-------------------\n"
-        "Open the wallet connect screen, choose your Polygon wallet, then return to Telegram.\n\n"
-        "PredictAI never asks for private keys."
+        "Connect a Polygon wallet so PredictAI can prepare order requests for you.\n\n"
+        "You stay in control:\n"
+        "- PredictAI never asks for private keys or seed phrases\n"
+        "- You approve every signing request in your wallet\n"
+        "- Connecting a wallet does not place a trade"
     )
     reply_markup = connect_wallet_keyboard(update.effective_user.id)
     if update.callback_query:
@@ -43,14 +46,14 @@ async def wallets_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         )
         return
 
-    lines = ["Your wallets", "------------"]
+    lines = ["Wallets", "-------", "Connected wallets available for order preparation:"]
     for wallet in wallets:
         marker = "*" if wallet.is_active else "-"
         balance = await get_usdc_balance(wallet.address)
         balance_text = f" - {balance:.2f} USDC" if balance is not None else ""
         active_text = " [Active]" if wallet.is_active else ""
         lines.append(f"{marker} {short_address(wallet.address)}{balance_text}{active_text}")
-    lines.append("\nChoose an action below.")
+    lines.append("\nChoose what to do next.")
     await update.effective_message.reply_text("\n".join(lines), reply_markup=wallet_actions_keyboard(has_wallet=True))
 
 
@@ -58,10 +61,10 @@ async def disconnect_command(update: Update, context: ContextTypes.DEFAULT_TYPE)
     async with SessionLocal() as session:
         count = await disconnect_wallets(session, update.effective_user.id)
     if count == 0:
-        await update.effective_message.reply_text("No wallets were connected.", reply_markup=wallet_actions_keyboard())
+        await update.effective_message.reply_text("No wallets were connected yet.", reply_markup=wallet_actions_keyboard())
         return
     await update.effective_message.reply_text(
-        "Wallet disconnected. Your open positions are not affected.",
+        "Wallet disconnected. Existing orders and positions are not affected.",
         reply_markup=wallet_actions_keyboard(),
     )
 
@@ -72,14 +75,14 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
         data = json.loads(raw)
     except json.JSONDecodeError:
         await update.effective_message.reply_text(
-            "Wallet connect data was invalid. Please try again.",
+            "Wallet connection response was invalid. Please open wallet connect and try again.",
             reply_markup=connect_wallet_keyboard(update.effective_user.id),
         )
         return
 
     if data.get("type") != "wallet_connected":
         await update.effective_message.reply_text(
-            "Unknown wallet connect response. Please try again.",
+            "PredictAI could not understand that wallet response. Please open wallet connect and try again.",
             reply_markup=connect_wallet_keyboard(update.effective_user.id),
         )
         return
@@ -87,7 +90,7 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
     address = str(data.get("address", "")).strip()
     if not is_evm_address(address):
         await update.effective_message.reply_text(
-            "That does not look like a valid EVM wallet address.",
+            "That does not look like a valid EVM wallet address. Please choose a Polygon-compatible wallet.",
             reply_markup=connect_wallet_keyboard(update.effective_user.id),
         )
         return
@@ -108,6 +111,6 @@ async def handle_web_app_data(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"Wallet connected\n"
         f"----------------\n"
         f"{short_address(wallet.address)}{proof_text}{balance_text}\n\n"
-        "Choose what to do next.",
+        "You can now prepare orders from market cards. You will still approve each signing request yourself.",
         reply_markup=wallet_actions_keyboard(has_wallet=True),
     )
