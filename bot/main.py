@@ -3,7 +3,7 @@ import logging
 from telegram.ext import Application, CallbackQueryHandler, CommandHandler, MessageHandler, filters
 
 from api.config import get_settings
-from bot.handlers import admin, alerts, analyze, markets, onboarding, orders, portfolio, status, trade, wallets
+from bot.handlers import admin, alerts, analyze, markets, onboarding, orders, portfolio, simulate, status, trade, wallets
 from db.models import init_db
 
 logging.basicConfig(
@@ -50,8 +50,9 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("wallets", wallets.wallets_command))
     app.add_handler(CommandHandler("disconnect", wallets.disconnect_command))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, wallets.handle_web_app_data))
-    app.add_handler(CallbackQueryHandler(markets.market_callback, pattern=r"^(market|market_pick|market_back|analyze|bet|alert_market)(:|$)"))
+    app.add_handler(CallbackQueryHandler(markets.market_callback, pattern=r"^(market|market_pick|market_back|analyze|simulate|bet|alert_market)(:|$)"))
     app.add_handler(CallbackQueryHandler(alerts.alert_callback, pattern=r"^alert_(threshold|cancel)"))
+    app.add_handler(CallbackQueryHandler(simulate.simulate_callback, pattern=r"^simulate_(side|amount|back)(:|$)"))
     app.add_handler(CallbackQueryHandler(trade.trade_callback, pattern=r"^bet_(side|amount|back|confirm|cancel)"))
     app.add_handler(CallbackQueryHandler(orders.order_callback, pattern=r"^order_(detail|cancel|retry|sync_all|back)(:|$)"))
     app.add_handler(CallbackQueryHandler(portfolio.portfolio_callback, pattern=r"^(position_(detail|sell|share):|portfolio_(back|pnl)$)"))

@@ -120,6 +120,10 @@ async def market_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             "Notify me when probability crosses:",
             reply_markup=alert_threshold_keyboard(),
         )
+    elif action == "simulate":
+        from bot.handlers.simulate import start_simulation
+
+        await start_simulation(update, context, market)
     elif action == "bet":
         from bot.handlers.trade import start_bet_flow
 

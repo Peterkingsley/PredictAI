@@ -145,10 +145,13 @@ def market_results_keyboard(markets: list[dict], include_back: bool = False) -> 
 def market_actions_keyboard(market_id: str, include_back: bool = False) -> InlineKeyboardMarkup:
     rows = [
         [
-            InlineKeyboardButton("Prepare bet", callback_data="bet:selected"),
             InlineKeyboardButton("Analyze", callback_data="analyze:selected"),
+            InlineKeyboardButton("Simulate", callback_data="simulate:selected"),
         ],
-        [InlineKeyboardButton("Alert", callback_data="alert_market:selected")],
+        [
+            InlineKeyboardButton("Prepare bet", callback_data="bet:selected"),
+            InlineKeyboardButton("Alert", callback_data="alert_market:selected"),
+        ],
     ]
     if include_back:
         rows.append([InlineKeyboardButton("Back to results", callback_data="market_back")])
@@ -159,13 +162,14 @@ def analysis_result_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
+                InlineKeyboardButton("Simulate", callback_data="simulate:selected"),
                 InlineKeyboardButton("Prepare bet", callback_data="bet:selected"),
-                InlineKeyboardButton("Alert", callback_data="alert_market:selected"),
             ],
             [
+                InlineKeyboardButton("Alert", callback_data="alert_market:selected"),
                 InlineKeyboardButton("Market", callback_data="market:selected"),
-                InlineKeyboardButton("Home", callback_data="home"),
             ],
+            [InlineKeyboardButton("Home", callback_data="home")],
         ]
     )
 
@@ -239,6 +243,54 @@ def bet_blocked_keyboard() -> InlineKeyboardMarkup:
                 InlineKeyboardButton("Status", callback_data="status"),
             ],
             [InlineKeyboardButton("Cancel", callback_data="bet_cancel")],
+        ]
+    )
+
+
+def simulate_side_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Yes", callback_data="simulate_side:YES"),
+                InlineKeyboardButton("No", callback_data="simulate_side:NO"),
+            ],
+            [
+                InlineKeyboardButton("Market", callback_data="market:selected"),
+                InlineKeyboardButton("Home", callback_data="home"),
+            ],
+        ]
+    )
+
+
+def simulate_amount_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("$5", callback_data="simulate_amount:5"),
+                InlineKeyboardButton("$10", callback_data="simulate_amount:10"),
+                InlineKeyboardButton("$25", callback_data="simulate_amount:25"),
+                InlineKeyboardButton("$50", callback_data="simulate_amount:50"),
+            ],
+            [
+                InlineKeyboardButton("Back", callback_data="simulate_back_side"),
+                InlineKeyboardButton("Market", callback_data="market:selected"),
+            ],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
+    )
+
+
+def simulate_result_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Prepare bet", callback_data="bet:selected"),
+                InlineKeyboardButton("Change amount", callback_data="simulate_back_amount"),
+            ],
+            [
+                InlineKeyboardButton("Market", callback_data="market:selected"),
+                InlineKeyboardButton("Home", callback_data="home"),
+            ],
         ]
     )
 
