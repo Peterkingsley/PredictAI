@@ -3,8 +3,16 @@ from telegram.ext import ContextTypes
 
 from api.services.order_submission import PolymarketOrderSubmissionService
 from api.services.wallets import short_address
-from bot.keyboards import dashboard_keyboard, help_menu_keyboard, help_section_keyboard, recovery_keyboard, start_keyboard
-from bot.messages import HELP_SECTIONS, HELP_TEXT, START_TEXT
+from bot.keyboards import (
+    dashboard_keyboard,
+    first_run_keyboard,
+    help_menu_keyboard,
+    help_section_keyboard,
+    how_it_works_keyboard,
+    recovery_keyboard,
+    start_keyboard,
+)
+from bot.messages import FIRST_RUN_TEXT, HELP_SECTIONS, HELP_TEXT, HOW_IT_WORKS_TEXT, START_TEXT
 from db.crud import get_active_wallet, list_alerts, list_open_positions, list_trade_orders
 from db.models import SessionLocal
 
@@ -22,6 +30,12 @@ async def generic_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     await query.answer()
     if query.data == "home":
         await _show_home(update, context)
+        return
+    if query.data == "dashboard":
+        await _show_home(update, context, force_dashboard=True)
+        return
+    if query.data == "how_it_works":
+        await query.edit_message_text(HOW_IT_WORKS_TEXT, reply_markup=how_it_works_keyboard())
         return
     if query.data == "markets":
         from bot.handlers.markets import markets_command
@@ -88,20 +102,27 @@ async def generic_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     )
 
 
-async def _show_home(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    text, has_wallet = await _home_text(update.effective_user.id)
+async def _show_home(update: Update, context: ContextTypes.DEFAULT_TYPE, force_dashboard: bool = False) -> None:
+    text, has_wallet, is_first_run = await _home_text(update.effective_user.id, force_dashboard=force_dashboard)
+    reply_markup = start_keyboard(has_wallet=has_wallet)
+    if is_first_run:
+        reply_markup = first_run_keyboard()
     if update.callback_query:
-        await update.callback_query.edit_message_text(text, reply_markup=start_keyboard(has_wallet=has_wallet))
+        await update.callback_query.edit_message_text(text, reply_markup=reply_markup)
         return
-    await update.effective_message.reply_text(text, reply_markup=start_keyboard(has_wallet=has_wallet))
+    await update.effective_message.reply_text(text, reply_markup=reply_markup)
 
 
-async def _home_text(telegram_id: int) -> tuple[str, bool]:
+async def _home_text(telegram_id: int, force_dashboard: bool = False) -> tuple[str, bool, bool]:
     async with SessionLocal() as session:
         wallet = await get_active_wallet(session, telegram_id)
         orders = await list_trade_orders(session, telegram_id, limit=20)
         positions = await list_open_positions(session, telegram_id)
         alerts = await list_alerts(session, telegram_id)
+
+    is_first_run = not wallet and not orders and not positions and not alerts
+    if is_first_run and not force_dashboard:
+        return FIRST_RUN_TEXT, False, True
 
     report = PolymarketOrderSubmissionService().readiness_report()
     live_status = "ready" if report["ready"] else "needs setup"
@@ -125,4 +146,4 @@ async def _home_text(telegram_id: int) -> tuple[str, bool]:
         lines.insert(-2, "Analysis, alerts, and order preparation are available. Live submission still needs setup before real orders can be sent.")
     else:
         lines.insert(-2, "You are set up to browse markets, analyze odds, prepare positions, and track results.")
-    return "\n".join(lines), bool(wallet)
+    return "\n".join(lines), bool(wallet), False

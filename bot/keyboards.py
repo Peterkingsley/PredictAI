@@ -61,6 +61,30 @@ def start_keyboard(has_wallet: bool = False) -> InlineKeyboardMarkup:
     return dashboard_keyboard(has_wallet=has_wallet)
 
 
+def first_run_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Start with markets", callback_data="markets")],
+            [InlineKeyboardButton("How it works", callback_data="how_it_works")],
+            [InlineKeyboardButton("Connect wallet", callback_data="connect")],
+            [InlineKeyboardButton("View dashboard", callback_data="dashboard")],
+        ]
+    )
+
+
+def how_it_works_keyboard() -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [InlineKeyboardButton("Start with markets", callback_data="markets")],
+            [
+                InlineKeyboardButton("Connect wallet", callback_data="connect"),
+                InlineKeyboardButton("Dashboard", callback_data="dashboard"),
+            ],
+            [InlineKeyboardButton("Home", callback_data="home")],
+        ]
+    )
+
+
 def help_menu_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [

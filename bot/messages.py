@@ -8,6 +8,29 @@ START_TEXT = (
     "You stay in control: PredictAI never asks for private keys, and every wallet approval happens in your wallet."
 )
 
+FIRST_RUN_TEXT = (
+    "Welcome to PredictAI\n"
+    "--------------------\n"
+    "Prediction markets can feel noisy. PredictAI turns them into a simple chat flow.\n\n"
+    "In under a minute, you can:\n"
+    "1. Browse live markets\n"
+    "2. Tap one market to inspect the odds\n"
+    "3. Analyze or simulate a position\n"
+    "4. Prepare a bet only when you are ready\n\n"
+    "You do not need a wallet to explore, analyze, or simulate. Start with markets."
+)
+
+HOW_IT_WORKS_TEXT = (
+    "How PredictAI works\n"
+    "-------------------\n"
+    "1. Browse markets by popularity, new listings, or search.\n"
+    "2. Tap a market number to open a clean detail card.\n"
+    "3. Use Analyze for a quick AI brief, or Simulate to preview shares and payout.\n"
+    "4. When you are ready, connect a wallet and prepare a bet.\n"
+    "5. You review every order before signing. Wallet approval stays in your wallet.\n\n"
+    "Best first step: start with markets and inspect one opportunity."
+)
+
 HELP_TEXT = (
     "How PredictAI works\n"
     "-------------------\n"
