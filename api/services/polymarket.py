@@ -32,6 +32,7 @@ class Market:
     active: bool
     yes_token_id: str | None = None
     no_token_id: str | None = None
+    min_order_size: float = 5.0
 
     def as_dict(self) -> dict[str, Any]:
         return {
@@ -46,6 +47,7 @@ class Market:
             "active": self.active,
             "yes_token_id": self.yes_token_id,
             "no_token_id": self.no_token_id,
+            "min_order_size": self.min_order_size,
         }
 
 
@@ -161,6 +163,7 @@ class PolymarketService:
         category = self._extract_category(item)
         end_date = item.get("end_date_iso") or item.get("endDate") or item.get("end_date") or item.get("endDateIso")
         question = str(item.get("question") or item.get("title") or "")
+        min_order_size = float(item.get("minimum_order_size") or item.get("orderMinSize") or item.get("min_order_size") or 5)
         active = self._is_tradeable_market(item, question, end_date, yes_price, no_price, yes_token_id, no_token_id)
 
         return Market(
@@ -175,6 +178,7 @@ class PolymarketService:
             active=active,
             yes_token_id=yes_token_id,
             no_token_id=no_token_id,
+            min_order_size=min_order_size,
         )
 
     def _extract_price(self, tokens: Any, outcome: str) -> float:

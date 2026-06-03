@@ -9,8 +9,9 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.config import get_settings
+from api.services.order_submission import PolymarketOrderSubmissionService
 from api.services.polymarket import PolymarketService
-from api.services.wallets import short_address
+from api.services.wallets import get_usdc_balance, short_address
 from bot.keyboards import bet_amount_keyboard, bet_confirm_keyboard, bet_side_keyboard
 from db.crud import create_signing_intent, get_active_wallet, update_signing_intent_payload
 from db.models import SessionLocal
@@ -83,6 +84,22 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         side = flow["side"]
         price = _price_for_side(market, side)
         shares = amount / price if price > 0 else 0
+        validation_errors = await _pre_trade_validation(
+            market=market,
+            side=side,
+            amount=amount,
+            shares=shares,
+            wallet_address=flow["wallet_address"],
+        )
+        if validation_errors:
+            await query.edit_message_text(
+                "Order cannot be prepared yet\n"
+                "----------------------------\n"
+                + "\n".join(f"- {error}" for error in validation_errors)
+                + "\n\nAdjust the amount or try another market.",
+                reply_markup=bet_amount_keyboard(),
+            )
+            return
         flow.update({"amount": amount, "price": price, "shares": shares})
         await query.edit_message_text(
             "Confirm your order\n"
@@ -108,6 +125,20 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         settings = get_settings()
         if not settings.mini_app_url:
             await query.edit_message_text("Signing is almost ready. Set MINI_APP_URL, then try again.")
+            return
+        validation_errors = await _pre_trade_validation(
+            market=market,
+            side=flow["side"],
+            amount=float(flow["amount"]),
+            shares=float(flow["shares"]),
+            wallet_address=flow["wallet_address"],
+        )
+        if validation_errors:
+            await query.edit_message_text(
+                "Order blocked before signing\n"
+                "----------------------------\n"
+                + "\n".join(f"- {error}" for error in validation_errors)
+            )
             return
 
         async with SessionLocal() as session:
@@ -167,6 +198,36 @@ def _token_id_for_side(market: dict, side: str) -> str | None:
     if side == "YES":
         return market.get("yes_token_id")
     return market.get("no_token_id")
+
+
+async def _pre_trade_validation(
+    market: dict,
+    side: str,
+    amount: float,
+    shares: float,
+    wallet_address: str,
+) -> list[str]:
+    settings = get_settings()
+    errors = []
+    readiness = PolymarketOrderSubmissionService().readiness_report()
+    if not readiness["ready"]:
+        errors.append(readiness["message"])
+    if not market.get("active", True):
+        errors.append("Market is not active.")
+    if not _token_id_for_side(market, side):
+        errors.append(f"{side} outcome token is missing.")
+    min_order_size = max(float(settings.min_bet_usdc), float(market.get("min_order_size") or 0))
+    if amount < min_order_size:
+        errors.append(f"Minimum order size is {min_order_size:.2f} USDC.")
+    if amount <= 0 or shares <= 0:
+        errors.append("Order amount and shares must be greater than zero.")
+    try:
+        balance = await get_usdc_balance(wallet_address)
+    except Exception:
+        balance = None
+    if balance is not None and balance < amount:
+        errors.append(f"Wallet USDC balance is {balance:.2f}, below {amount:.2f} USDC.")
+    return errors
 
 
 def _build_order_intent_typed_data(intent_id: int, payload: dict) -> dict:
