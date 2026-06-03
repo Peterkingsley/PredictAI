@@ -99,6 +99,22 @@ class PolymarketOrderSubmissionService:
             "raw_response": response_dict,
         }
 
+    def cancel_order(self, polymarket_order_id: str) -> dict[str, Any]:
+        if not polymarket_order_id:
+            raise OrderSubmissionError("Polymarket order ID is missing.")
+        missing = self._missing_configuration({"outcome_token_id": "not-required"})
+        if missing:
+            raise OrderSubmissionError(f"Missing required Polymarket configuration: {', '.join(missing)}.")
+        try:
+            response = self._client().cancel_orders([polymarket_order_id])
+        except Exception as exc:
+            raise OrderSubmissionError(self._friendly_error_message(exc)) from exc
+        response_dict = self._response_to_dict(response)
+        return {
+            "status": "CANCELLED",
+            "raw_response": response_dict,
+        }
+
     def _missing_configuration(self, payload: dict[str, Any]) -> list[str]:
         checks = {
             "POLYMARKET_PRIVATE_KEY": self.settings.polymarket_private_key,

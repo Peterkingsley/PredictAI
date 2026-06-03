@@ -8,6 +8,7 @@ from db.crud import (
     list_syncable_trade_orders,
     list_trade_orders,
     update_trade_order_sync,
+    update_trade_order_cancellation,
     upsert_position_from_trade_order,
 )
 from db.models import SessionLocal
@@ -82,6 +83,40 @@ async def sync_orders_command(update: Update, context: ContextTypes.DEFAULT_TYPE
     if errors:
         lines.extend(["", *errors[:5]])
     await update.effective_message.reply_text("\n".join(lines))
+
+
+async def cancel_order_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    if not context.args:
+        await update.effective_message.reply_text("Usage: /cancel_order [order id]")
+        return
+    try:
+        order_id = int(context.args[0])
+    except ValueError:
+        await update.effective_message.reply_text("Order ID must be a number.")
+        return
+
+    service = PolymarketOrderSubmissionService()
+    async with SessionLocal() as session:
+        order = await get_trade_order(session, update.effective_user.id, order_id)
+        if not order:
+            await update.effective_message.reply_text("Order not found.")
+            return
+        if order.status not in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}:
+            await update.effective_message.reply_text(f"Order #{order.id} is not cancellable because status is {order.status}.")
+            return
+        try:
+            cancellation = service.cancel_order(order.polymarket_order_id)
+            updated = await update_trade_order_cancellation(session, order, cancellation["raw_response"])
+        except OrderSubmissionError as exc:
+            await update.effective_message.reply_text(f"Cancel failed\n-------------\n{exc}")
+            return
+
+    await update.effective_message.reply_text(
+        "Order cancelled\n"
+        "---------------\n"
+        f"Order #{updated.id}\n"
+        f"{updated.market_question[:80]}"
+    )
 
 
 def _format_order_detail(order) -> str:

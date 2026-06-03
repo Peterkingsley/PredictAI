@@ -199,6 +199,23 @@ async def update_trade_order_sync(
     return order
 
 
+async def update_trade_order_cancellation(
+    session: AsyncSession,
+    order: TradeOrder,
+    cancel_response: dict,
+) -> TradeOrder:
+    order.status = "CANCELLED"
+    order.submission = {
+        **(order.submission or {}),
+        "cancel_response": cancel_response,
+        "cancelled_at": datetime.utcnow().isoformat(),
+    }
+    order.updated_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(order)
+    return order
+
+
 async def upsert_position_from_trade_order(session: AsyncSession, order: TradeOrder) -> Position | None:
     if order.status not in {"FILLED", "PARTIALLY_FILLED"}:
         return None

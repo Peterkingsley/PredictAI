@@ -17,6 +17,7 @@ from db.crud import (
     list_open_positions,
     list_positions,
     list_trade_orders,
+    update_trade_order_cancellation,
     update_trade_order_sync,
     update_signing_intent_submission,
     upsert_position_from_trade_order,
@@ -229,6 +230,23 @@ async def sync_orders(telegram_id: int, limit: int = 25):
         "orders": synced,
         "errors": errors,
     }
+
+
+@router.post("/orders/{telegram_id}/{order_id}/cancel")
+async def cancel_order(telegram_id: int, order_id: int):
+    service = PolymarketOrderSubmissionService()
+    async with SessionLocal() as session:
+        order = await get_trade_order(session, telegram_id, order_id)
+        if not order:
+            return {"status": "not_found"}
+        if order.status not in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}:
+            return {"status": "not_cancellable", "order": _trade_order_dict(order)}
+        try:
+            cancellation = service.cancel_order(order.polymarket_order_id)
+            updated = await update_trade_order_cancellation(session, order, cancellation["raw_response"])
+        except OrderSubmissionError as exc:
+            return {"status": "failed", "message": str(exc), "order": _trade_order_dict(order)}
+    return {"status": "cancelled", "order": _trade_order_dict(updated)}
 
 
 @router.get("/orders/{telegram_id}/{order_id}")
