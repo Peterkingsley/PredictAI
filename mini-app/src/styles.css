@@ -71,8 +71,7 @@ h1 {
 
 .wallet-connect,
 .notice,
-.signing-card,
-.fallback-panel {
+.signing-card {
   display: grid;
   gap: 10px;
   padding: 12px;
@@ -85,6 +84,16 @@ h1 {
   background: #ffffff;
 }
 
+.wallet-connect {
+  gap: 14px;
+  background: #ffffff;
+}
+
+.wallet-intro {
+  display: grid;
+  gap: 4px;
+}
+
 .warning {
   border-color: #e5b85d;
   background: #fff9eb;
@@ -95,6 +104,10 @@ h1 {
   gap: 12px;
   align-items: center;
   justify-content: space-between;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbf9;
 }
 
 .label {
@@ -163,20 +176,6 @@ pre {
   font: 0.82rem ui-monospace, SFMono-Regular, Consolas, "Liberation Mono", monospace;
 }
 
-.fallback-panel {
-  padding: 10px;
-  background: #ffffff;
-}
-
-.fallback-link {
-  display: block;
-  max-width: 100%;
-  overflow-wrap: anywhere;
-  color: var(--accent);
-  font-size: 0.84rem;
-  font-weight: 700;
-}
-
 label {
   display: grid;
   gap: 7px;
@@ -220,6 +219,13 @@ button:disabled {
 .status {
   margin: 0;
   color: var(--muted);
+}
+
+.helper-text {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  line-height: 1.4;
 }
 
 .status.good {

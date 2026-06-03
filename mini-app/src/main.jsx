@@ -7,7 +7,6 @@ import { parseUnits } from "viem";
 import "./styles.css";
 import { AppKitProvider, apiBaseUrl, requiredNetwork, walletConnectProjectId } from "./walletConfig.jsx";
 
-const TRUST_WALLET_POLYGON_COIN_ID = 966;
 const USDC_DECIMALS = 6;
 const USDC_ABI = [
   {
@@ -103,97 +102,8 @@ function formatUsdcUnits(value) {
   return (Number(value) / 1_000_000).toFixed(2);
 }
 
-function isTelegramWebApp() {
-  return Boolean(window.Telegram?.WebApp);
-}
-
 function hasTelegramSendData() {
   return Boolean(window.Telegram?.WebApp?.sendData);
-}
-
-function ExternalBrowserFallback() {
-  const [copyStatus, setCopyStatus] = useState("");
-  const currentUrl = window.location.href;
-  const trustWalletUrl = `https://link.trustwallet.com/open_url?coin_id=${TRUST_WALLET_POLYGON_COIN_ID}&url=${encodeURIComponent(currentUrl)}`;
-
-  function openExternally() {
-    if (window.Telegram?.WebApp?.openLink) {
-      window.Telegram.WebApp.openLink(currentUrl, { try_instant_view: false });
-      return;
-    }
-    window.open(currentUrl, "_blank", "noopener,noreferrer");
-  }
-
-  async function copyCurrentUrl() {
-    try {
-      await navigator.clipboard.writeText(currentUrl);
-      setCopyStatus("Link copied.");
-    } catch {
-      setCopyStatus("Copy blocked. Long-press the link below instead.");
-    }
-  }
-
-  function openTrustWallet() {
-    window.location.href = trustWalletUrl;
-  }
-
-  if (!isTelegramWebApp()) {
-    return null;
-  }
-
-  return (
-    <div className="fallback-panel">
-      <p className="status">
-        If your wallet app will not open from Telegram, open this page in your browser first.
-      </p>
-      <p className="status">
-        If Trust Wallet opens to the home screen, return here, copy the WalletConnect link from the modal, then use
-        Trust Wallet's scanner or WalletConnect screen to pair it.
-      </p>
-      <button className="secondary" onClick={openExternally}>
-        Open in browser
-      </button>
-      <button className="primary" onClick={openTrustWallet}>
-        Open in Trust Wallet
-      </button>
-      <button className="secondary" onClick={copyCurrentUrl}>
-        Copy page link
-      </button>
-      <a className="fallback-link" href={currentUrl} target="_blank" rel="noreferrer">
-        {currentUrl}
-      </a>
-      {copyStatus ? <p className="status">{copyStatus}</p> : null}
-    </div>
-  );
-}
-
-function TrustWalletBrowserLaunch() {
-  const currentUrl = window.location.href;
-  const trustWalletUrl = `https://link.trustwallet.com/open_url?coin_id=${TRUST_WALLET_POLYGON_COIN_ID}&url=${encodeURIComponent(currentUrl)}`;
-
-  function openTrustWalletBrowser() {
-    if (window.Telegram?.WebApp?.openLink) {
-      window.Telegram.WebApp.openLink(trustWalletUrl, { try_instant_view: false });
-      return;
-    }
-    window.open(trustWalletUrl, "_blank", "noopener,noreferrer");
-  }
-
-  if (!isTelegramWebApp()) {
-    return null;
-  }
-
-  return (
-    <div className="fallback-panel">
-      <p className="label">Trust Wallet</p>
-      <p className="status">
-        Open PredictAI inside Trust Wallet first, then connect from there. This avoids Telegram dropping the WalletConnect pairing link.
-      </p>
-      <button className="primary" onClick={openTrustWalletBrowser}>
-        Open in Trust Wallet
-      </button>
-    </div>
-  );
 }
 
 function WalletConnectControls({ onWalletDetected, onWalletState }) {
@@ -225,17 +135,22 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
 
   return (
     <div className="wallet-connect">
-      <TrustWalletBrowserLaunch />
+      <div className="wallet-intro">
+        <p className="label">Choose your wallet</p>
+        <p className="status">
+          Select MetaMask, Trust Wallet, Coinbase Wallet, Rainbow, or any WalletConnect wallet from the next screen.
+        </p>
+      </div>
 
       <div className="wallet-row">
         <div>
-          <p className="label">WalletConnect</p>
+          <p className="label">Wallet status</p>
           <p className={isConnected ? "status good" : "status"}>
             {isConnected ? shortAddress(address) : `Status: ${status || "disconnected"}`}
           </p>
         </div>
         <button className="secondary small" onClick={() => open({ view: isConnected ? "Account" : "Connect", namespace: "eip155" })}>
-          {isConnected ? "Account" : "Connect"}
+          {isConnected ? "Manage" : "Choose wallet"}
         </button>
       </div>
 
@@ -252,13 +167,9 @@ function WalletConnectControls({ onWalletDetected, onWalletState }) {
       ) : null}
 
       {!isConnected ? (
-        <>
-          <p className="status">
-            WalletConnect pairing requires access to <code>relay.walletconnect.org</code>. If the modal stays blank,
-            try another network or disable browser filters.
-          </p>
-          <ExternalBrowserFallback />
-        </>
+        <p className="helper-text">
+          The wallet list opens through Reown WalletConnect. If it does not load, check network access and try again.
+        </p>
       ) : null}
     </div>
   );
@@ -703,7 +614,7 @@ function App() {
         <p className="eyebrow">PredictAI wallet</p>
         <h1>{intentId ? "Review signing request" : "Connect your wallet"}</h1>
         <p className="copy">
-          Connect a Polygon wallet so the bot can show balances and prepare the signing flow. No private keys are requested.
+          Choose any Polygon-compatible wallet. PredictAI only asks you to prove ownership and approve requests in your wallet.
         </p>
 
         <SigningIntentCard
@@ -741,10 +652,7 @@ function App() {
 
         <p className={walletState.isConnected && walletState.isPolygon ? "status good" : "status"}>{status}</p>
         {!intentId ? (
-          <p className="status">
-            Send mode: {telegramId && apiBaseUrl ? "Backend API" : hasTelegramSendData() ? "Telegram WebApp" : "Backend API"}
-            {telegramId ? ` / Telegram ID ${telegramId}` : " / Telegram ID missing"}
-          </p>
+          <p className="helper-text">After sending, return to Telegram to continue trading from chat.</p>
         ) : null}
       </section>
     </main>
