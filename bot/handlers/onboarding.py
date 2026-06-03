@@ -19,6 +19,7 @@ async def generic_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -
     if query.data == "markets":
         from bot.handlers.markets import markets_command
 
+        context.args = []
         await markets_command(update, context)
         return
     if query.data == "help":

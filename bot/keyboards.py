@@ -35,16 +35,31 @@ def connect_wallet_reply_keyboard() -> ReplyKeyboardMarkup:
     )
 
 
-def market_actions_keyboard(market_id: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup(
-        [
+def market_results_keyboard(markets: list[dict], include_back: bool = False) -> InlineKeyboardMarkup:
+    rows = []
+    for start in range(0, min(len(markets), 10), 5):
+        rows.append(
             [
-                InlineKeyboardButton("Analyze", callback_data="analyze:selected"),
-                InlineKeyboardButton("Bet", callback_data="bet:selected"),
-            ],
-            [InlineKeyboardButton("View market", callback_data="market:selected")],
-        ]
-    )
+                InlineKeyboardButton(str(index + 1), callback_data=f"market_pick:{index}")
+                for index in range(start, min(start + 5, min(len(markets), 10)))
+            ]
+        )
+    if include_back:
+        rows.append([InlineKeyboardButton("Back to results", callback_data="market_back")])
+    return InlineKeyboardMarkup(rows)
+
+
+def market_actions_keyboard(market_id: str, include_back: bool = False) -> InlineKeyboardMarkup:
+    rows = [
+        [
+            InlineKeyboardButton("Bet", callback_data="bet:selected"),
+            InlineKeyboardButton("Analyze", callback_data="analyze:selected"),
+        ],
+        [InlineKeyboardButton("Alert", callback_data="alert_market:selected")],
+    ]
+    if include_back:
+        rows.append([InlineKeyboardButton("Back to results", callback_data="market_back")])
+    return InlineKeyboardMarkup(rows)
 
 
 def bet_side_keyboard() -> InlineKeyboardMarkup:

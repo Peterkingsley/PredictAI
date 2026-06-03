@@ -43,27 +43,35 @@ HELP_TEXT = (
 
 
 def format_market_list(title: str, markets: list[dict[str, Any]]) -> str:
-    lines = [f"{title} - live Polymarket data", ""]
+    lines = [title, "Live Polymarket markets", ""]
     for index, market in enumerate(markets[:10], start=1):
+        closes = market.get("end_date") or "close unknown"
         lines.extend(
             [
                 f"{index}. {market['question']}",
-                f"{market['category']} - {market['probability']:.0f}% Yes - ${market['volume']:,.0f} vol",
-                f"ID: {market['id']}",
+                (
+                    f"Yes {market['probability']:.0f}% | "
+                    f"${float(market.get('volume') or 0):,.0f} vol | "
+                    f"{closes}"
+                ),
                 "",
             ]
         )
+    lines.append("Tap a number below to view details and prepare an order.")
     return "\n".join(lines).strip()
 
 
 def format_market_detail(market: dict[str, Any]) -> str:
+    status = "Active" if market.get("active", True) else "Inactive"
     return (
         f"{market['question']}\n"
-        "----------------------\n"
+        "--------------------\n"
+        f"Status: {status}\n"
         f"Category: {market['category']}\n"
-        f"Probability: {market['probability']:.0f}%\n"
-        f"Volume: ${market['volume']:,.0f}\n"
+        f"Probability: {market['probability']:.0f}% Yes\n"
+        f"Yes price: ${market['yes_price']:.2f}\n"
+        f"No price: ${market['no_price']:.2f}\n"
+        f"Volume: ${float(market.get('volume') or 0):,.0f}\n"
         f"Closes: {market.get('end_date') or 'Unknown'}\n\n"
-        f"Yes best price: ${market['yes_price']:.2f}\n"
-        f"No best price: ${market['no_price']:.2f}"
+        "Choose an action below."
     )

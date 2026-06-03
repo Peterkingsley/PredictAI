@@ -50,7 +50,7 @@ def build_app() -> Application:
     app.add_handler(CommandHandler("wallets", wallets.wallets_command))
     app.add_handler(CommandHandler("disconnect", wallets.disconnect_command))
     app.add_handler(MessageHandler(filters.StatusUpdate.WEB_APP_DATA, wallets.handle_web_app_data))
-    app.add_handler(CallbackQueryHandler(markets.market_callback, pattern=r"^(market|analyze|bet):"))
+    app.add_handler(CallbackQueryHandler(markets.market_callback, pattern=r"^(market|market_pick|market_back|analyze|bet|alert_market)(:|$)"))
     app.add_handler(CallbackQueryHandler(alerts.alert_callback, pattern=r"^alert_(threshold|cancel)"))
     app.add_handler(CallbackQueryHandler(trade.trade_callback, pattern=r"^bet_(side|amount|confirm|cancel)"))
     app.add_handler(CallbackQueryHandler(portfolio.portfolio_callback, pattern=r"^position_(detail|sell|share):"))
