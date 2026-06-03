@@ -51,7 +51,7 @@ class PolymarketOrderSubmissionService:
             signed_order = client.create_order(order_args)
             response = self._post_order(client, signed_order)
         except Exception as exc:
-            raise OrderSubmissionError(str(exc)) from exc
+            raise OrderSubmissionError(self._friendly_error_message(exc)) from exc
 
         response_dict = self._response_to_dict(response)
         return OrderSubmissionResult(
@@ -143,3 +143,13 @@ class PolymarketOrderSubmissionService:
         nested = response.get("order") if isinstance(response.get("order"), dict) else {}
         nested_id = nested.get("id") or nested.get("orderID") or nested.get("order_id")
         return str(nested_id) if nested_id else None
+
+    def _friendly_error_message(self, exc: Exception) -> str:
+        message = str(exc)
+        lowered = message.lower()
+        if "status_code=403" in lowered and ("geoblock" in lowered or "restricted in your region" in lowered):
+            return (
+                "Polymarket rejected the order because the API request came from a restricted server region. "
+                "Move the API service to a Polymarket-supported deployment region, then try again."
+            )
+        return message
