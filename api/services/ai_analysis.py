@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
@@ -8,18 +9,19 @@ import google.generativeai as genai
 
 from api.config import get_settings
 
+logger = logging.getLogger(__name__)
+
 
 class AIAnalysisService:
-    model_name = "gemini-1.5-flash"
-
     def __init__(self) -> None:
         self.settings = get_settings()
+        self.model_name = self.settings.gemini_model
         if self.settings.gemini_api_key:
             genai.configure(api_key=self.settings.gemini_api_key)
 
     async def analyze_market(self, market: dict[str, Any]) -> dict[str, Any]:
         if not self.settings.gemini_api_key:
-            return self._fallback(market)
+            return self._fallback(market, reason="missing_config")
 
         model = genai.GenerativeModel(
             self.model_name,
@@ -31,8 +33,9 @@ class AIAnalysisService:
         )
         try:
             response = await model.generate_content_async(self._prompt(market))
-        except Exception:
-            return self._fallback(market)
+        except Exception as exc:
+            logger.exception("Gemini market analysis failed")
+            return self._fallback(market, reason="request_failed", error_type=type(exc).__name__)
         return self._coerce_report(market, self._parse_json(response.text))
 
     def _prompt(self, market: dict[str, Any]) -> str:
@@ -114,7 +117,7 @@ class AIAnalysisService:
         clean = [str(item).strip()[:160] for item in items if str(item).strip()]
         return (clean or fallback)[:limit]
 
-    def _fallback(self, market: dict[str, Any]) -> dict[str, Any]:
+    def _fallback(self, market: dict[str, Any], reason: str = "market_data_only", error_type: str | None = None) -> dict[str, Any]:
         probability = float(market.get("probability", 0))
         ai_probability = probability
         if market.get("active") is False:
@@ -129,6 +132,28 @@ class AIAnalysisService:
         else:
             signal = "NO_EDGE"
             confidence = "LOW"
+        if reason == "missing_config":
+            summary = "Gemini is not configured in the running analysis service, so this is a market-data-only read."
+            reasons = [
+                f"The current market price implies roughly {probability:.0f}% Yes.",
+                "No external news or rules context was used in this fallback analysis.",
+            ]
+            action = "Use this as a baseline only; wait for a stronger edge or run analysis after Gemini is configured."
+        elif reason == "request_failed":
+            summary = "Gemini is configured, but the analysis request failed before a usable response was returned."
+            reasons = [
+                f"The current market price implies roughly {probability:.0f}% Yes.",
+                f"Gemini returned {error_type or 'an error'}; check the bot worker logs for the exact provider response.",
+            ]
+            action = "Use this as a baseline only; retry after checking the Gemini key, model access, and Render logs."
+        else:
+            summary = "PredictAI used a market-data-only read for this report."
+            reasons = [
+                f"The current market price implies roughly {probability:.0f}% Yes.",
+                "No external news or rules context was used in this fallback analysis.",
+            ]
+            action = "Use this as a baseline only; wait for a stronger edge before trading."
+
         return {
             "market_id": market.get("id"),
             "question": market.get("question"),
@@ -137,14 +162,13 @@ class AIAnalysisService:
             "edge_percent": 0,
             "signal": signal,
             "confidence": confidence,
-            "summary": "Gemini is not configured in the running analysis service, so this is a market-data-only read.",
-            "reasons": [
-                f"The current market price implies roughly {probability:.0f}% Yes.",
-                "No external news or rules context was used in this fallback analysis.",
-            ],
+            "summary": summary,
+            "reasons": reasons,
             "risks": [
                 "Thin liquidity, stale prices, or unclear resolution rules can make the displayed probability unreliable.",
             ],
-            "suggested_action": "Use this as a baseline only; wait for a stronger edge or run analysis after Gemini is configured.",
+            "suggested_action": action,
             "model": "fallback",
+            "fallback_reason": reason,
+            "fallback_error_type": error_type,
         }

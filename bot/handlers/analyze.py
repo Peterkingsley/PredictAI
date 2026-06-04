@@ -52,10 +52,13 @@ async def _get_or_create_report(market: dict) -> tuple[dict, bool]:
     async with SessionLocal() as session:
         cached = await get_cached_market_analysis(session, str(market.get("id")), float(market.get("probability") or 0))
         if cached:
-            return dict(cached.analysis or {}), True
+            cached_report = dict(cached.analysis or {})
+            if cached_report.get("model") != "fallback":
+                return cached_report, True
     report = await ai_service.analyze_market(market)
-    async with SessionLocal() as session:
-        await upsert_market_analysis_cache(session, market, report, report.get("model", "unknown"))
+    if report.get("model") != "fallback":
+        async with SessionLocal() as session:
+            await upsert_market_analysis_cache(session, market, report, report.get("model", "unknown"))
     return report, False
 
 

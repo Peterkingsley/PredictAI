@@ -1,3 +1,5 @@
+import os
+
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -18,6 +20,7 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
     enabled = "on" if report["live_submission_enabled"] else "off"
     ready = "ready" if report["ready"] else "not ready"
     fast_status = "enabled" if authorization else "not enabled"
+    service_name = os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID") or "unknown"
     missing = report["missing_configuration"]
     lines = [
         "System status",
@@ -26,6 +29,7 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
         f"Readiness: {ready}",
         f"Fast trading: {fast_status}",
         f"AI analysis: {'Gemini configured' if settings.gemini_api_key else 'Gemini missing'}",
+        f"Render service: {service_name}",
         f"Polymarket host: {report['host']}",
         f"Chain: {report['chain_id']}",
         f"Signature type: {report['signature_type']}",
