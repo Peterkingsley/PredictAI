@@ -137,7 +137,7 @@ class AIAnalysisService:
             "edge_percent": 0,
             "signal": signal,
             "confidence": confidence,
-            "summary": "Gemini is not configured, so this is a market-data-only read.",
+            "summary": "Gemini is not configured in the running analysis service, so this is a market-data-only read.",
             "reasons": [
                 f"The current market price implies roughly {probability:.0f}% Yes.",
                 "No external news or rules context was used in this fallback analysis.",

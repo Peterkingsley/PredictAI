@@ -1,6 +1,7 @@
 from telegram import Update
 from telegram.ext import ContextTypes
 
+from api.config import get_settings
 from api.services.order_submission import PolymarketOrderSubmissionService
 from bot.keyboards import status_keyboard
 from db.crud import get_active_wallet, get_fast_trading_authorization
@@ -8,6 +9,7 @@ from db.models import SessionLocal
 
 
 async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    settings = get_settings()
     report = PolymarketOrderSubmissionService().readiness_report()
     telegram_id = update.effective_user.id if update.effective_user else update.callback_query.from_user.id
     async with SessionLocal() as session:
@@ -23,6 +25,7 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
         f"Live submission: {enabled}",
         f"Readiness: {ready}",
         f"Fast trading: {fast_status}",
+        f"AI analysis: {'Gemini configured' if settings.gemini_api_key else 'Gemini missing'}",
         f"Polymarket host: {report['host']}",
         f"Chain: {report['chain_id']}",
         f"Signature type: {report['signature_type']}",
