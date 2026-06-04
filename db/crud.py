@@ -3,7 +3,7 @@ from datetime import datetime
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Alert, FastTradingAuthorization, Position, SigningIntent, TradeOrder, User, Wallet
+from db.models import Alert, FastTradingAuthorization, MarketAnalysisCache, Position, SigningIntent, TradeOrder, User, Wallet
 
 
 async def get_or_create_user(session: AsyncSession, telegram_id: int, username: str | None = None) -> User:
@@ -517,6 +517,69 @@ async def mark_alert_triggered(session: AsyncSession, alert_id: int) -> None:
     alert.triggered = True
     alert.triggered_at = datetime.utcnow()
     await session.commit()
+
+
+def market_analysis_price_bucket(probability: float) -> int:
+    return round(float(probability or 0) / 5) * 5
+
+
+async def get_cached_market_analysis(
+    session: AsyncSession,
+    market_id: str,
+    probability: float,
+    max_age_minutes: int = 30,
+) -> MarketAnalysisCache | None:
+    bucket = market_analysis_price_bucket(probability)
+    result = await session.execute(
+        select(MarketAnalysisCache).where(
+            MarketAnalysisCache.market_id == str(market_id),
+            MarketAnalysisCache.price_bucket == bucket,
+        )
+    )
+    cache = result.scalar_one_or_none()
+    if not cache:
+        return None
+    updated_at = cache.updated_at or cache.created_at
+    if not updated_at:
+        return None
+    age_seconds = (datetime.utcnow() - updated_at).total_seconds()
+    if age_seconds > max_age_minutes * 60:
+        return None
+    return cache
+
+
+async def upsert_market_analysis_cache(
+    session: AsyncSession,
+    market: dict,
+    analysis: dict,
+    model: str,
+) -> MarketAnalysisCache:
+    market_id = str(market.get("id"))
+    probability = float(market.get("probability") or 0)
+    bucket = market_analysis_price_bucket(probability)
+    result = await session.execute(
+        select(MarketAnalysisCache).where(
+            MarketAnalysisCache.market_id == market_id,
+            MarketAnalysisCache.price_bucket == bucket,
+        )
+    )
+    cache = result.scalar_one_or_none()
+    if not cache:
+        cache = MarketAnalysisCache(
+            market_id=market_id,
+            price_bucket=bucket,
+            question=str(market.get("question") or "Selected market"),
+            market_probability_yes=probability,
+        )
+        session.add(cache)
+    cache.question = str(market.get("question") or "Selected market")
+    cache.market_probability_yes = probability
+    cache.analysis = analysis
+    cache.model = model
+    cache.updated_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(cache)
+    return cache
 
 
 async def create_signing_intent(

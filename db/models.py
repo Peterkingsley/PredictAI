@@ -105,6 +105,21 @@ class Alert(Base):
     triggered_at: Mapped[datetime | None] = mapped_column(DateTime)
 
 
+class MarketAnalysisCache(Base):
+    __tablename__ = "market_analysis_cache"
+    __table_args__ = (UniqueConstraint("market_id", "price_bucket", name="uq_market_analysis_cache_bucket"),)
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    market_id: Mapped[str] = mapped_column(Text, nullable=False, index=True)
+    price_bucket: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    market_probability_yes: Mapped[float] = mapped_column(Numeric(6, 2), nullable=False)
+    analysis: Mapped[dict] = mapped_column(JSON, default=dict)
+    model: Mapped[str] = mapped_column(Text, default="fallback")
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
+    updated_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
 class SigningIntent(Base):
     __tablename__ = "signing_intents"
 
