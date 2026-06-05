@@ -404,6 +404,7 @@ def position_actions_keyboard(position_id: int) -> InlineKeyboardMarkup:
 def alert_threshold_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
+            [InlineKeyboardButton("Suggested alerts", callback_data="alert_suggested")],
             [
                 InlineKeyboardButton("50%", callback_data="alert_threshold:50"),
                 InlineKeyboardButton("60%", callback_data="alert_threshold:60"),
@@ -413,3 +414,29 @@ def alert_threshold_keyboard() -> InlineKeyboardMarkup:
             [InlineKeyboardButton("Cancel", callback_data="alert_cancel")],
         ]
     )
+
+
+def alert_suggestion_keyboard(market: dict) -> InlineKeyboardMarkup:
+    probability = float(market.get("probability") or 0)
+    higher = max(1, min(99, round(probability + 5)))
+    lower = max(1, min(99, round(probability - 5)))
+    rows = []
+    if probability <= 5:
+        rows.append([InlineKeyboardButton(f"Yes rises to {higher}%", callback_data=f"alert_create:ABOVE:{higher}")])
+    elif probability >= 95:
+        rows.append([InlineKeyboardButton(f"Yes falls to {lower}%", callback_data=f"alert_create:BELOW:{lower}")])
+    else:
+        rows.append(
+            [
+                InlineKeyboardButton(f"Yes rises to {higher}%", callback_data=f"alert_create:ABOVE:{higher}"),
+                InlineKeyboardButton(f"Yes falls to {lower}%", callback_data=f"alert_create:BELOW:{lower}"),
+            ]
+        )
+    rows.extend(
+        [
+            [InlineKeyboardButton("Price move reminder", callback_data=f"alert_create:ABOVE:{higher}")],
+            [InlineKeyboardButton("Custom threshold", callback_data="alert_custom")],
+            [InlineKeyboardButton("Cancel", callback_data="alert_cancel")],
+        ]
+    )
+    return InlineKeyboardMarkup(rows)

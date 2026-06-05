@@ -4,7 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.services.polymarket import PolymarketService
-from bot.keyboards import alert_result_keyboard, alert_threshold_keyboard, recovery_keyboard
+from bot.keyboards import alert_result_keyboard, alert_suggestion_keyboard, alert_threshold_keyboard, recovery_keyboard
 from db.crud import create_alert, list_alerts
 from db.models import SessionLocal
 
@@ -31,7 +31,7 @@ async def alerts_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 [
                     "",
                     alert.market_question[:80],
-                    f"{alert.direction} {float(alert.threshold):.0f}%",
+                    f"Yes {alert.direction.lower()} {float(alert.threshold):.0f}%",
                 ]
             )
         lines.append("")
@@ -84,7 +84,34 @@ async def alert_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         )
         return
 
-    threshold = float(action.split(":", 1)[1])
+    if action == "alert_suggested":
+        await query.edit_message_text(
+            "Suggested alerts\n"
+            "----------------\n"
+            f"{market['question']}\n\n"
+            f"Current Yes probability: {float(market.get('probability') or 0):.0f}%\n"
+            "Choose what you want PredictAI to watch:",
+            reply_markup=alert_suggestion_keyboard(market),
+        )
+        return
+
+    if action == "alert_custom":
+        await query.edit_message_text(
+            "Custom alert\n"
+            "------------\n"
+            f"{market['question']}\n\n"
+            f"Current Yes probability: {float(market.get('probability') or 0):.0f}%\n"
+            "Choose the Yes probability level you want to watch:",
+            reply_markup=alert_threshold_keyboard(),
+        )
+        return
+
+    direction = "ABOVE"
+    if action.startswith("alert_create:"):
+        _, direction, raw_threshold = action.split(":", 2)
+    else:
+        raw_threshold = action.split(":", 1)[1]
+    threshold = float(raw_threshold)
     async with SessionLocal() as session:
         alert = await create_alert(
             session,
@@ -93,7 +120,7 @@ async def alert_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
             market_id=market["id"],
             market_question=market["question"],
             threshold=threshold,
-            direction="ABOVE",
+            direction=direction,
         )
 
     context.user_data.pop("alert_market", None)
@@ -102,6 +129,6 @@ async def alert_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         "Alert is active\n"
         "---------------\n"
         f"{alert.market_question}\n"
-        f"PredictAI will notify you when Yes probability crosses {float(alert.threshold):.0f}%.",
+        f"PredictAI will notify you when Yes probability moves {alert.direction.lower()} {float(alert.threshold):.0f}%.",
         reply_markup=alert_result_keyboard(include_market=True),
     )
