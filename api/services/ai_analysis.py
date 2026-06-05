@@ -112,8 +112,10 @@ class AIAnalysisService:
             "ai_probability_yes, market_probability_yes, edge_percent, signal, confidence, "
             "summary, reasons, risks, suggested_action. "
             "Rules: ai_probability_yes must be 1-99; signal must be one of LEAN_YES, LEAN_NO, NO_EDGE, AVOID; "
-            "confidence must be LOW, MEDIUM, or HIGH; reasons must contain 2-3 short strings; risks must contain 1-3 short strings; "
-            "suggested_action must be one short sentence with a price discipline. "
+            "confidence must be LOW, MEDIUM, or HIGH; confidence means confidence in a tradable pricing edge, not confidence that an event is unlikely; "
+            "if your estimate is within 3 percentage points of the market price, use NO_EDGE and LOW confidence; "
+            "use HIGH only when supplied market data clearly supports a large edge; reasons must contain 2-3 short strings; risks must contain 1-3 short strings; "
+            "suggested_action must be one short sentence with a price discipline and should avoid entries when there is no clear edge. "
             f"Market packet: {json.dumps(packet, separators=(',', ':'))}"
         )
 
@@ -169,8 +171,13 @@ class AIAnalysisService:
         confidence = str(parsed.get("confidence") or fallback["confidence"]).upper()
         if confidence not in {"LOW", "MEDIUM", "HIGH"}:
             confidence = fallback["confidence"]
+        signal = self._calibrated_signal(market, ai_probability, market_probability, signal)
+        confidence = self._calibrated_confidence(market, ai_probability, market_probability, confidence)
         reasons = self._short_list(parsed.get("reasons"), fallback["reasons"], limit=3)
         risks = self._short_list(parsed.get("risks"), fallback["risks"], limit=3)
+        suggested_action = str(parsed.get("suggested_action") or fallback["suggested_action"])[:220]
+        if signal == "NO_EDGE":
+            suggested_action = "No clear pricing edge; watch the market or wait for a better entry."
         return {
             "market_id": market.get("id"),
             "question": market.get("question"),
@@ -182,9 +189,33 @@ class AIAnalysisService:
             "summary": str(parsed.get("summary") or fallback["summary"])[:260],
             "reasons": reasons,
             "risks": risks,
-            "suggested_action": str(parsed.get("suggested_action") or fallback["suggested_action"])[:220],
+            "suggested_action": suggested_action,
             "model": self.model_name,
         }
+
+    def _calibrated_signal(self, market: dict[str, Any], ai_probability: float, market_probability: float, signal: str) -> str:
+        if market.get("active") is False:
+            return "AVOID"
+        edge = ai_probability - market_probability
+        if abs(edge) < 3:
+            return "NO_EDGE"
+        if edge >= 3:
+            return "LEAN_YES"
+        return "LEAN_NO"
+
+    def _calibrated_confidence(self, market: dict[str, Any], ai_probability: float, market_probability: float, confidence: str) -> str:
+        edge = abs(ai_probability - market_probability)
+        volume = float(market.get("volume") or 0)
+        liquidity = float(market.get("liquidity") or 0)
+        if edge < 3:
+            return "LOW"
+        if edge < 8:
+            return "MEDIUM" if confidence == "HIGH" else confidence
+        if volume < 10000 or liquidity < 1000:
+            return "LOW"
+        if volume < 100000 or liquidity < 10000:
+            return "MEDIUM" if confidence == "HIGH" else confidence
+        return confidence
 
     def _bounded_probability(self, value: Any, fallback: float) -> float:
         try:
