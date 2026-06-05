@@ -5,7 +5,6 @@ import math
 from urllib.parse import urlencode
 
 import qrcode
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 from telegram import Update
 from telegram.ext import ContextTypes
 
@@ -20,6 +19,7 @@ from bot.keyboards import (
     bet_side_keyboard,
     connect_wallet_keyboard,
     recovery_keyboard,
+    signing_request_keyboard,
 )
 from db.crud import create_signing_intent, get_active_wallet, get_fast_trading_authorization, update_signing_intent_payload
 from db.models import SessionLocal
@@ -185,15 +185,24 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         await query.edit_message_text(
             "Signing request created\n"
             "-----------------------\n"
-            f"{float(flow['amount']):.2f} USDC on {flow['side']}\n"
-            f"{market['question']}\n\n"
-            "Open the signing page, approve in your wallet, then return to Telegram for confirmation."
+            f"Market: {market['question']}\n"
+            f"Side: {flow['side']}\n"
+            f"Amount: {float(flow['amount']):.2f} USDC\n"
+            f"Price: ${float(flow['price']):.2f}\n"
+            f"Shares: {float(flow['shares']):.2f}\n"
+            f"Wallet: {short_address(flow['wallet_address'])}\n\n"
+            "Status: waiting for wallet signature\n"
+            "Next: open the signing page, approve in your wallet, then return to Telegram."
         )
         await context.bot.send_photo(
             chat_id=query.message.chat_id,
             photo=qr_image,
-            caption=f"Signing request #{intent.id}\nWallet: {short_address(flow['wallet_address'])}",
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("Open signing page", url=signing_url)]]),
+            caption=(
+                f"Signing request #{intent.id}\n"
+                f"Wallet: {short_address(flow['wallet_address'])}\n"
+                "After signing, PredictAI will record the order status in Orders."
+            ),
+            reply_markup=signing_request_keyboard(signing_url),
         )
 
 
@@ -314,21 +323,26 @@ async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, am
         return
 
     flow.update({"amount": amount, "price": price, "shares": shares})
-    fast_trading_note = await _fast_trading_review_note(update.effective_user.id, flow["wallet_address"])
+    fast_trading_enabled, fast_trading_note = await _fast_trading_review_state(update.effective_user.id, flow["wallet_address"])
     await _reply_or_edit(
         update,
-        "Review order\n"
+        "Order review\n"
         "------------\n"
         f"Market: {market['question']}\n"
-        f"Position: {side}\n"
+        f"Side: {side}\n"
         f"Amount: {amount:.2f} USDC\n"
-        f"Entry price: ${price:.2f}\n"
-        f"Shares: {shares:.2f}\n"
-        f"Max payout: {shares:.2f} USDC\n"
+        f"Price: ${price:.2f}\n"
+        f"Estimated shares: {shares:.2f}\n"
+        f"Max payout if correct: {shares:.2f} USDC\n"
         f"Wallet: {short_address(flow['wallet_address'])}\n\n"
-        f"{fast_trading_note}\n"
-        "Next step: continue to wallet signing. No order is submitted until signing and backend checks complete.",
-        reply_markup=bet_confirm_keyboard(),
+        "Trading mode\n"
+        f"{fast_trading_note}\n\n"
+        "What happens next\n"
+        "1. You sign this order request in your wallet.\n"
+        "2. PredictAI verifies the signature and records the order.\n"
+        "3. If live submission is enabled and ready, the backend submits it to Polymarket.\n\n"
+        "No trade is submitted from this screen.",
+        reply_markup=bet_confirm_keyboard(fast_trading_enabled=fast_trading_enabled),
     )
 
 
@@ -342,14 +356,19 @@ async def _wallet_balance_text(wallet_address: str) -> str:
     return f"USDC balance: {balance:.2f}"
 
 
-async def _fast_trading_review_note(telegram_id: int, wallet_address: str) -> str:
+async def _fast_trading_review_state(telegram_id: int, wallet_address: str) -> tuple[bool, str]:
     async with SessionLocal() as session:
         authorization = await get_fast_trading_authorization(session, telegram_id, wallet_address)
     if not authorization:
-        return "Fast trading: not enabled."
+        return (
+            False,
+            "Fast trading: not enabled.\n"
+            "This order will use wallet signing. You can enable fast trading for smoother future orders.",
+        )
     return (
-        "Fast trading: authorized for Telegram-confirmed orders. "
-        "Wallet signing is still required until delegated order signing is configured."
+        True,
+        "Fast trading: enabled for this wallet.\n"
+        "For now, wallet signing is still required until direct delegated submission is fully enabled.",
     )
 
 

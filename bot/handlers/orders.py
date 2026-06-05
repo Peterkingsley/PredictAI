@@ -293,7 +293,7 @@ def _format_order_dashboard(orders) -> str:
         "---------------",
         _format_counts(counts),
         "",
-        "Tap an order to see status, signing details, and available actions.",
+        "Tap an order to see lifecycle status, signing details, and available actions.",
     ]
     for order in orders:
         lines.extend(
@@ -319,9 +319,10 @@ def _format_order_detail(order) -> str:
         f"Order #{order.id}\n"
         "--------\n"
         f"{order.market_question}\n\n"
+        f"Lifecycle: {_status_label(order.status)}\n"
+        f"Next: {_next_action(order)}\n\n"
         f"Type: {order.order_type}\n"
         f"Side: {order.side}\n"
-        f"Status: {_status_label(order.status)}\n"
         f"Wallet: {short_address(order.wallet_address)}\n"
         f"Amount: {float(order.amount_usdc):.2f} USDC\n"
         f"Shares: {float(order.shares):.2f}\n"
@@ -330,8 +331,7 @@ def _format_order_detail(order) -> str:
         f"Polymarket order: {polymarket_id}\n\n"
         f"Submission: {message}\n"
         f"Remote status: {remote_status or '-'}\n"
-        f"Last sync: {synced_at or '-'}\n\n"
-        f"Next: {_next_action(order)}"
+        f"Last sync: {synced_at or '-'}"
     )
 
 

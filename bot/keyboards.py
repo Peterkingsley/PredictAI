@@ -248,14 +248,30 @@ def bet_amount_keyboard() -> InlineKeyboardMarkup:
     )
 
 
-def bet_confirm_keyboard() -> InlineKeyboardMarkup:
+def bet_confirm_keyboard(fast_trading_enabled: bool = False) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton("Open signing", callback_data="bet_confirm")]]
+    if fast_trading_enabled:
+        rows.append([InlineKeyboardButton("Fast trading status", callback_data="fast_trading_status")])
+    else:
+        rows.append([InlineKeyboardButton("Enable fast trading", callback_data="fast_trading_status")])
+    rows.append(
+        [
+            InlineKeyboardButton("Change amount", callback_data="bet_back_amount"),
+            InlineKeyboardButton("Cancel", callback_data="bet_cancel"),
+        ]
+    )
+    return InlineKeyboardMarkup(rows)
+
+
+def signing_request_keyboard(signing_url: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
-            [InlineKeyboardButton("Continue to signing", callback_data="bet_confirm")],
+            [InlineKeyboardButton("Open signing page", url=signing_url)],
             [
-                InlineKeyboardButton("Back", callback_data="bet_back_amount"),
-                InlineKeyboardButton("Cancel", callback_data="bet_cancel"),
+                InlineKeyboardButton("View orders", callback_data="orders"),
+                InlineKeyboardButton("Back to market", callback_data="market:selected"),
             ],
+            [InlineKeyboardButton("Home", callback_data="home")],
         ]
     )
 
