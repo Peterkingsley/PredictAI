@@ -64,7 +64,6 @@ class AIAnalysisService:
                 generation_config={
                     "temperature": 0.25,
                     "max_output_tokens": 700,
-                    "response_mime_type": "application/json",
                 },
             )
             try:
@@ -80,7 +79,19 @@ class AIAnalysisService:
                     error_type=last_error_type,
                     attempted_models=attempted_models,
                 )
-            report = self._coerce_report(market, self._parse_json(response.text))
+            parsed = self._parse_json(self._response_text(response))
+            if not self._has_required_report_fields(parsed):
+                last_error_type = "InvalidJSON"
+                logger.warning("Gemini returned an unparseable analysis for model %s", model_name)
+                if model_name != unique_models[-1]:
+                    continue
+                return self._fallback(
+                    market,
+                    reason="invalid_response",
+                    error_type=last_error_type,
+                    attempted_models=attempted_models,
+                )
+            report = self._coerce_report(market, parsed)
             report["model"] = model_name
             report["attempted_models"] = attempted_models
             return report
@@ -128,8 +139,25 @@ class AIAnalysisService:
         try:
             parsed = json.loads(text)
         except json.JSONDecodeError:
-            return {}
+            start = text.find("{")
+            end = text.rfind("}")
+            if start < 0 or end <= start:
+                return {}
+            try:
+                parsed = json.loads(text[start : end + 1])
+            except json.JSONDecodeError:
+                return {}
         return parsed if isinstance(parsed, dict) else {}
+
+    def _has_required_report_fields(self, parsed: dict[str, Any]) -> bool:
+        required = {"ai_probability_yes", "signal", "confidence", "summary", "reasons", "risks", "suggested_action"}
+        return required.issubset(parsed.keys())
+
+    def _response_text(self, response: Any) -> str:
+        try:
+            return str(response.text or "")
+        except Exception:
+            return ""
 
     def _coerce_report(self, market: dict[str, Any], parsed: dict[str, Any]) -> dict[str, Any]:
         fallback = self._fallback(market)
@@ -198,14 +226,17 @@ class AIAnalysisService:
                 "No external news or rules context was used in this fallback analysis.",
             ]
             action = "Use this as a baseline only; wait for a stronger edge or run analysis after Gemini is configured."
-        elif reason == "request_failed":
-            summary = "Gemini is configured, but the analysis request failed before a usable response was returned."
+        elif reason in {"request_failed", "invalid_response"}:
+            if reason == "invalid_response":
+                summary = "Gemini responded, but PredictAI could not parse a usable structured analysis."
+            else:
+                summary = "Gemini is configured, but the analysis request failed before a usable response was returned."
             attempted = ", ".join(attempted_models or self.model_chain)
             reasons = [
                 f"The current market price implies roughly {probability:.0f}% Yes.",
                 f"Gemini returned {error_type or 'an error'} after trying: {attempted}.",
             ]
-            action = "Use this as a baseline only; retry after checking the Gemini key, model access, and Render logs."
+            action = "Use this as a baseline only; retry after checking Gemini model output and Render logs."
         else:
             summary = "PredictAI used a market-data-only read for this report."
             reasons = [
