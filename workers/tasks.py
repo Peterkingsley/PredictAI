@@ -3,7 +3,7 @@ import json
 import logging
 
 from redis import Redis
-from telegram import Bot
+from telegram import Bot, InlineKeyboardButton, InlineKeyboardMarkup
 
 from api.config import get_settings
 from api.services.order_submission import OrderSubmissionError, PolymarketOrderSubmissionService
@@ -81,8 +81,9 @@ async def _check_price_alerts() -> int:
                         f"{alert.market_question}\n"
                         f"Yes probability is now {probability:.0f}% "
                         f"(threshold {threshold:.0f}%).\n\n"
-                        f"/market {alert.market_id}"
+                        "Next: review the market, simulate, or prepare a position."
                     ),
+                    reply_markup=_alert_trigger_keyboard(alert.market_id),
                 )
             except Exception:
                 logger.exception("Failed to send alert %s to Telegram user %s", alert.id, telegram_id)
@@ -126,6 +127,7 @@ async def _reconcile_trade_orders() -> dict:
                 await bot.send_message(
                     chat_id=telegram_id,
                     text=_format_order_status_change(updated, previous_status, position),
+                    reply_markup=_order_status_keyboard(updated, position),
                 )
                 notified += 1
             except Exception:
@@ -152,8 +154,45 @@ def _format_order_status_change(order, previous_status: str, position) -> str:
     ]
     if position:
         lines.extend(["", f"Portfolio position #{position.id} updated."])
-    lines.extend(["", _next_action(order), f"/order_{order.id}"])
+    lines.extend(["", f"Next: {_next_action(order)}"])
     return "\n".join(lines)
+
+
+def _alert_trigger_keyboard(market_id: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup(
+        [
+            [
+                InlineKeyboardButton("Market", callback_data=f"market:{market_id}"),
+                InlineKeyboardButton("Prepare bet", callback_data=f"bet:{market_id}"),
+            ],
+            [
+                InlineKeyboardButton("Simulate", callback_data=f"simulate:{market_id}"),
+                InlineKeyboardButton("Home", callback_data="home"),
+            ],
+        ]
+    )
+
+
+def _order_status_keyboard(order, position) -> InlineKeyboardMarkup:
+    rows = [[InlineKeyboardButton("View order", callback_data=f"order_detail:{order.id}")]]
+    if order.status in {"SUBMITTED", "OPEN", "PARTIALLY_FILLED"}:
+        rows.append(
+            [
+                InlineKeyboardButton("Sync orders", callback_data="order_sync_all"),
+                InlineKeyboardButton("Cancel", callback_data=f"order_cancel:{order.id}"),
+            ]
+        )
+    elif order.status in {"FAILED", "CONFIGURATION_MISSING", "SIGNED", "SIGNED_PENDING_SUBMISSION"}:
+        rows.append([InlineKeyboardButton("Retry submission", callback_data=f"order_retry:{order.id}")])
+    if position:
+        rows.append([InlineKeyboardButton("Portfolio", callback_data="portfolio")])
+    rows.append(
+        [
+            InlineKeyboardButton("Orders", callback_data="orders"),
+            InlineKeyboardButton("Home", callback_data="home"),
+        ]
+    )
+    return InlineKeyboardMarkup(rows)
 
 
 def _status_label(status: str) -> str:
