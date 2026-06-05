@@ -127,7 +127,7 @@ async def complete_intent(intent_id: int, request: CompleteSigningIntentRequest)
             status="ORDER_SUBMITTED" if submission["status"] == "submitted" else None,
         )
         order = await upsert_trade_order_from_intent(session, intent, submission)
-    await _notify_telegram_signature_received(intent.telegram_id, intent)
+    await _notify_telegram_signature_received(intent.telegram_id, intent, order)
     return {
         "id": intent.id,
         "status": intent.status,
@@ -311,7 +311,7 @@ async def _notify_telegram_transaction(telegram_id: int, intent_id: int, request
         await client.post(api_url, json={"chat_id": telegram_id, "text": text})
 
 
-async def _notify_telegram_signature_received(telegram_id: int, intent) -> None:
+async def _notify_telegram_signature_received(telegram_id: int, intent, order=None) -> None:
     settings = get_settings()
     if not settings.telegram_bot_token:
         return
@@ -319,38 +319,70 @@ async def _notify_telegram_signature_received(telegram_id: int, intent) -> None:
     payload = intent.payload or {}
     submission = payload.get("order_submission") or {}
     amount = payload.get("amount_usdc")
+    price = payload.get("entry_price")
+    shares = payload.get("shares")
     side = payload.get("side", intent.intent_type)
     question = payload.get("market_question", "Selected market")
     amount_text = f"{float(amount):.2f} USDC " if amount is not None else ""
     if submission.get("status") == "submitted":
-        order_status = (
-            f"Order submitted to Polymarket CLOB.\n"
-            f"Order: {submission.get('order_id') or 'pending ID'}\n"
-            "Next: run /sync_orders to confirm open/filled status."
-        )
+        lifecycle = "Submitted"
+        next_action = "Sync orders to confirm whether it is open or filled."
     elif submission.get("status") == "failed":
-        order_status = (
-            f"Order submission failed: {submission.get('message')}\n"
-            "Next: run /status, fix the issue, then create a new order."
-        )
+        lifecycle = "Failed"
+        next_action = "Open Status, fix the issue, then retry from Orders."
+    elif submission.get("status") == "configuration_missing":
+        lifecycle = "Configuration missing"
+        next_action = "Open Status, complete missing config, then retry from Orders."
+    elif submission.get("status") == "disabled":
+        lifecycle = "Signed - live submission paused"
+        next_action = "Enable live submission when ready, then retry from Orders."
     else:
-        order_status = (
-            f"Order submission queued: {submission.get('message', 'live submission is not enabled yet.')}\n"
-            "Next: run /status to see what is blocking live submission."
-        )
+        lifecycle = "Signed"
+        next_action = "Open Orders for the latest status."
     text = (
-        "Wallet signature received\n"
-        "-------------------------\n"
+        "Signature received\n"
+        "------------------\n"
         f"Signing request #{intent.id}\n"
-        f"{amount_text}{side}\n"
+        f"Order: #{order.id if order else '-'}\n"
+        f"Lifecycle: {lifecycle}\n"
         f"{question}\n\n"
-        f"{order_status}\n\n"
-        "Use /orders for the order dashboard."
+        f"Side: {side}\n"
+        f"Amount: {amount_text.strip() or '-'}\n"
+        f"Price: {_format_price(price)}\n"
+        f"Shares: {_format_number(shares)}\n"
+        f"Wallet: {short_address(intent.wallet_address)}\n"
+        f"Polymarket order: {submission.get('order_id') or '-'}\n\n"
+        f"Submission: {submission.get('message', '-')}\n"
+        f"Next: {next_action}"
     )
 
     api_url = f"https://api.telegram.org/bot{settings.telegram_bot_token}/sendMessage"
+    buttons = [
+        [
+            {"text": "View orders", "callback_data": "orders"},
+            {"text": "Sync orders", "callback_data": "order_sync_all"},
+        ],
+        [
+            {"text": "Back to market", "callback_data": "market:selected"},
+            {"text": "Home", "callback_data": "home"},
+        ],
+    ]
+    if order and order.status in RETRYABLE_ORDER_STATUSES:
+        buttons.insert(0, [{"text": "Retry submission", "callback_data": f"order_retry:{order.id}"}])
     async with httpx.AsyncClient(timeout=10) as client:
-        await client.post(api_url, json={"chat_id": telegram_id, "text": text})
+        await client.post(api_url, json={"chat_id": telegram_id, "text": text, "reply_markup": {"inline_keyboard": buttons}})
+
+
+def _format_price(value) -> str:
+    if value is None:
+        return "-"
+    return f"${float(value):.4f}"
+
+
+def _format_number(value) -> str:
+    if value is None:
+        return "-"
+    return f"{float(value):.2f}"
 
 
 def _verify_typed_data_signature(intent, signature: str, submitted_typed_data: dict | None = None) -> dict:
