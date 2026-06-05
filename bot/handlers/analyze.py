@@ -8,7 +8,6 @@ from db.crud import get_cached_market_analysis, upsert_market_analysis_cache
 from db.models import SessionLocal
 
 market_service = PolymarketService()
-ai_service = AIAnalysisService()
 
 
 async def analyze_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -55,7 +54,7 @@ async def _get_or_create_report(market: dict) -> tuple[dict, bool]:
             cached_report = dict(cached.analysis or {})
             if cached_report.get("model") != "fallback":
                 return cached_report, True
-    report = await ai_service.analyze_market(market)
+    report = await AIAnalysisService().analyze_market(market)
     if report.get("model") != "fallback":
         async with SessionLocal() as session:
             await upsert_market_analysis_cache(session, market, report, report.get("model", "unknown"))

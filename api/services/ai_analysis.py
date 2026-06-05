@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import logging
+import os
 import re
 from typing import Any
 
@@ -12,15 +14,33 @@ from api.config import get_settings
 logger = logging.getLogger(__name__)
 
 
+def gemini_runtime_status() -> dict[str, Any]:
+    settings = get_settings()
+    raw_env = (os.getenv("GEMINI_API_KEY") or "").strip()
+    configured_key = (settings.gemini_api_key or "").strip()
+    key_value = configured_key or raw_env
+    key_hash = hashlib.sha256(key_value.encode("utf-8")).hexdigest()[:8] if key_value else ""
+    return {
+        "configured": bool(key_value),
+        "settings_has_key": bool(configured_key),
+        "env_has_key": bool(raw_env),
+        "key_length": len(key_value),
+        "key_hash": key_hash,
+        "model": settings.gemini_model,
+        "render_service": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID") or "unknown",
+    }
+
+
 class AIAnalysisService:
     def __init__(self) -> None:
         self.settings = get_settings()
         self.model_name = self.settings.gemini_model
-        if self.settings.gemini_api_key:
-            genai.configure(api_key=self.settings.gemini_api_key)
+        self.api_key = (self.settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "") or "").strip()
+        if self.api_key:
+            genai.configure(api_key=self.api_key)
 
     async def analyze_market(self, market: dict[str, Any]) -> dict[str, Any]:
-        if not self.settings.gemini_api_key:
+        if not self.api_key:
             return self._fallback(market, reason="missing_config")
 
         model = genai.GenerativeModel(

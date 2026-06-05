@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.config import get_settings
+from api.services.ai_analysis import gemini_runtime_status
 from api.services.order_submission import PolymarketOrderSubmissionService
 from bot.keyboards import status_keyboard
 from db.crud import get_active_wallet, get_fast_trading_authorization
@@ -20,6 +21,7 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
     enabled = "on" if report["live_submission_enabled"] else "off"
     ready = "ready" if report["ready"] else "not ready"
     fast_status = "enabled" if authorization else "not enabled"
+    ai_status = gemini_runtime_status()
     service_name = os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID") or "unknown"
     missing = report["missing_configuration"]
     lines = [
@@ -28,7 +30,10 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
         f"Live submission: {enabled}",
         f"Readiness: {ready}",
         f"Fast trading: {fast_status}",
-        f"AI analysis: {'Gemini configured' if settings.gemini_api_key else 'Gemini missing'}",
+        f"AI analysis: {'Gemini configured' if ai_status['configured'] else 'Gemini missing'}",
+        f"AI key source: settings={ai_status['settings_has_key']} env={ai_status['env_has_key']}",
+        f"AI key check: len={ai_status['key_length']} hash={ai_status['key_hash'] or 'none'}",
+        f"AI model: {ai_status['model']}",
         f"Render service: {service_name}",
         f"Polymarket host: {report['host']}",
         f"Chain: {report['chain_id']}",
