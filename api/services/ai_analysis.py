@@ -27,14 +27,25 @@ def gemini_runtime_status() -> dict[str, Any]:
         "key_length": len(key_value),
         "key_hash": key_hash,
         "model": settings.gemini_model,
+        "fallback_models": _split_models(settings.gemini_fallback_models),
         "render_service": os.getenv("RENDER_SERVICE_NAME") or os.getenv("RENDER_SERVICE_ID") or "unknown",
     }
+
+
+def _split_models(value: str) -> list[str]:
+    return [model.strip() for model in (value or "").split(",") if model.strip()]
+
+
+def _is_not_found_error(exc: Exception) -> bool:
+    text = f"{type(exc).__name__} {exc}".lower()
+    return "notfound" in text or "not_found" in text or "not found" in text or "404" in text
 
 
 class AIAnalysisService:
     def __init__(self) -> None:
         self.settings = get_settings()
         self.model_name = self.settings.gemini_model
+        self.model_chain = [self.model_name, *_split_models(self.settings.gemini_fallback_models)]
         self.api_key = (self.settings.gemini_api_key or os.getenv("GEMINI_API_KEY", "") or "").strip()
         if self.api_key:
             genai.configure(api_key=self.api_key)
@@ -43,20 +54,42 @@ class AIAnalysisService:
         if not self.api_key:
             return self._fallback(market, reason="missing_config")
 
-        model = genai.GenerativeModel(
-            self.model_name,
-            generation_config={
-                "temperature": 0.25,
-                "max_output_tokens": 700,
-                "response_mime_type": "application/json",
-            },
+        last_error_type = None
+        attempted_models: list[str] = []
+        unique_models = list(dict.fromkeys(self.model_chain))
+        for model_name in unique_models:
+            attempted_models.append(model_name)
+            model = genai.GenerativeModel(
+                model_name,
+                generation_config={
+                    "temperature": 0.25,
+                    "max_output_tokens": 700,
+                    "response_mime_type": "application/json",
+                },
+            )
+            try:
+                response = await model.generate_content_async(self._prompt(market))
+            except Exception as exc:
+                last_error_type = type(exc).__name__
+                logger.exception("Gemini market analysis failed for model %s", model_name)
+                if _is_not_found_error(exc) and model_name != unique_models[-1]:
+                    continue
+                return self._fallback(
+                    market,
+                    reason="request_failed",
+                    error_type=last_error_type,
+                    attempted_models=attempted_models,
+                )
+            report = self._coerce_report(market, self._parse_json(response.text))
+            report["model"] = model_name
+            report["attempted_models"] = attempted_models
+            return report
+        return self._fallback(
+            market,
+            reason="request_failed",
+            error_type=last_error_type,
+            attempted_models=attempted_models,
         )
-        try:
-            response = await model.generate_content_async(self._prompt(market))
-        except Exception as exc:
-            logger.exception("Gemini market analysis failed")
-            return self._fallback(market, reason="request_failed", error_type=type(exc).__name__)
-        return self._coerce_report(market, self._parse_json(response.text))
 
     def _prompt(self, market: dict[str, Any]) -> str:
         packet = self._market_packet(market)
@@ -137,7 +170,13 @@ class AIAnalysisService:
         clean = [str(item).strip()[:160] for item in items if str(item).strip()]
         return (clean or fallback)[:limit]
 
-    def _fallback(self, market: dict[str, Any], reason: str = "market_data_only", error_type: str | None = None) -> dict[str, Any]:
+    def _fallback(
+        self,
+        market: dict[str, Any],
+        reason: str = "market_data_only",
+        error_type: str | None = None,
+        attempted_models: list[str] | None = None,
+    ) -> dict[str, Any]:
         probability = float(market.get("probability", 0))
         ai_probability = probability
         if market.get("active") is False:
@@ -161,9 +200,10 @@ class AIAnalysisService:
             action = "Use this as a baseline only; wait for a stronger edge or run analysis after Gemini is configured."
         elif reason == "request_failed":
             summary = "Gemini is configured, but the analysis request failed before a usable response was returned."
+            attempted = ", ".join(attempted_models or self.model_chain)
             reasons = [
                 f"The current market price implies roughly {probability:.0f}% Yes.",
-                f"Gemini returned {error_type or 'an error'}; check the bot worker logs for the exact provider response.",
+                f"Gemini returned {error_type or 'an error'} after trying: {attempted}.",
             ]
             action = "Use this as a baseline only; retry after checking the Gemini key, model access, and Render logs."
         else:
@@ -191,4 +231,5 @@ class AIAnalysisService:
             "model": "fallback",
             "fallback_reason": reason,
             "fallback_error_type": error_type,
+            "attempted_models": attempted_models or self.model_chain,
         }

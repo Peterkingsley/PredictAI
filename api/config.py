@@ -27,7 +27,8 @@ class Settings(BaseSettings):
     mini_app_url: str = ""
     cors_origins: str = ""
     gemini_api_key: str = ""
-    gemini_model: str = "gemini-1.5-flash"
+    gemini_model: str = "gemini-3.5-flash"
+    gemini_fallback_models: str = "gemini-2.5-flash,gemini-3.1-flash-lite"
     environment: str = "development"
     admin_telegram_ids: str = ""
     min_bet_usdc: float = 1.0

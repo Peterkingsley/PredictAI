@@ -34,6 +34,7 @@ async def trading_status_command(update: Update, context: ContextTypes.DEFAULT_T
         f"AI key source: settings={ai_status['settings_has_key']} env={ai_status['env_has_key']}",
         f"AI key check: len={ai_status['key_length']} hash={ai_status['key_hash'] or 'none'}",
         f"AI model: {ai_status['model']}",
+        f"AI fallback models: {', '.join(ai_status['fallback_models']) or 'none'}",
         f"Render service: {service_name}",
         f"Polymarket host: {report['host']}",
         f"Chain: {report['chain_id']}",

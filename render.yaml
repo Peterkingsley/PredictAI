@@ -71,7 +71,9 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL
-        value: gemini-1.5-flash
+        value: gemini-3.5-flash
+      - key: GEMINI_FALLBACK_MODELS
+        value: gemini-2.5-flash,gemini-3.1-flash-lite
       - key: ADMIN_TELEGRAM_IDS
         sync: false
 
@@ -107,7 +109,9 @@ services:
       - key: GEMINI_API_KEY
         sync: false
       - key: GEMINI_MODEL
-        value: gemini-1.5-flash
+        value: gemini-3.5-flash
+      - key: GEMINI_FALLBACK_MODELS
+        value: gemini-2.5-flash,gemini-3.1-flash-lite
       - key: ADMIN_TELEGRAM_IDS
         sync: false
 
