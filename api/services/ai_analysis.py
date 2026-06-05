@@ -191,6 +191,7 @@ class AIAnalysisService:
             "risks": risks,
             "suggested_action": suggested_action,
             "model": self.model_name,
+            "analysis_version": 2,
         }
 
     def _calibrated_signal(self, market: dict[str, Any], ai_probability: float, market_probability: float, signal: str) -> str:
@@ -291,6 +292,7 @@ class AIAnalysisService:
             ],
             "suggested_action": action,
             "model": "fallback",
+            "analysis_version": 2,
             "fallback_reason": reason,
             "fallback_error_type": error_type,
             "attempted_models": attempted_models or self.model_chain,

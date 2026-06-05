@@ -188,12 +188,12 @@ def analysis_result_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         [
             [
-                InlineKeyboardButton("Simulate", callback_data="simulate:selected"),
                 InlineKeyboardButton("Prepare bet", callback_data="bet:selected"),
+                InlineKeyboardButton("Simulate", callback_data="simulate:selected"),
             ],
             [
-                InlineKeyboardButton("Alert", callback_data="alert_market:selected"),
-                InlineKeyboardButton("Market", callback_data="market:selected"),
+                InlineKeyboardButton("Set alert", callback_data="alert_market:selected"),
+                InlineKeyboardButton("Back to market", callback_data="market:selected"),
             ],
             [InlineKeyboardButton("Home", callback_data="home")],
         ]
