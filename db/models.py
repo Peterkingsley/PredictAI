@@ -15,8 +15,14 @@ class User(Base):
     __tablename__ = "users"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    telegram_id: Mapped[int] = mapped_column(BigInteger, unique=True, nullable=False, index=True)
+    telegram_id: Mapped[int | None] = mapped_column(BigInteger, unique=True, nullable=True, index=True)
     username: Mapped[str | None] = mapped_column(Text)
+    email: Mapped[str | None] = mapped_column(Text, unique=True, index=True)
+    password_hash: Mapped[str | None] = mapped_column(Text)
+    referral_code: Mapped[str | None] = mapped_column(String(16), unique=True, index=True)
+    referred_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    is_admin: Mapped[bool] = mapped_column(Boolean, default=False)
+    reward_points_balance: Mapped[int] = mapped_column(Integer, default=0)
     joined_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     settings: Mapped[dict] = mapped_column(JSON, default=dict)
 
@@ -124,7 +130,8 @@ class SigningIntent(Base):
     __tablename__ = "signing_intents"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    telegram_id: Mapped[int] = mapped_column(BigInteger, nullable=False, index=True)
+    telegram_id: Mapped[int | None] = mapped_column(BigInteger, nullable=True, index=True)
+    user_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True, nullable=True)
     wallet_address: Mapped[str] = mapped_column(Text, nullable=False)
     intent_type: Mapped[str] = mapped_column(String(16), nullable=False)
     payload: Mapped[dict] = mapped_column(JSON, default=dict)
@@ -132,6 +139,33 @@ class SigningIntent(Base):
     signature: Mapped[str | None] = mapped_column(Text)
     created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
     completed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class MarketSuggestion(Base):
+    __tablename__ = "market_suggestions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    question: Mapped[str] = mapped_column(Text, nullable=False)
+    category: Mapped[str] = mapped_column(String(32), default="general")
+    resolution_criteria: Mapped[str] = mapped_column(Text, nullable=False)
+    source_url: Mapped[str | None] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(16), default="PENDING", index=True)
+    admin_note: Mapped[str | None] = mapped_column(Text)
+    reviewed_by_id: Mapped[int | None] = mapped_column(ForeignKey("users.id", ondelete="SET NULL"))
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now())
+    reviewed_at: Mapped[datetime | None] = mapped_column(DateTime)
+
+
+class RewardTransaction(Base):
+    __tablename__ = "reward_transactions"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    points: Mapped[int] = mapped_column(Integer, nullable=False)
+    reason: Mapped[str] = mapped_column(String(32), nullable=False)
+    reward_metadata: Mapped[dict] = mapped_column("metadata", JSON, default=dict)
+    created_at: Mapped[datetime] = mapped_column(DateTime, server_default=func.now(), index=True)
 
 
 def _async_database_url() -> str:

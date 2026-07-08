@@ -25,7 +25,10 @@ class Settings(BaseSettings):
     polygon_rpc_url: str = ""
     walletconnect_project_id: str = ""
     mini_app_url: str = ""
+    web_app_url: str = ""
     cors_origins: str = ""
+    jwt_secret: str = ""
+    jwt_expires_minutes: int = 60 * 24 * 14
     gemini_api_key: str = ""
     gemini_model: str = "gemini-3.5-flash"
     gemini_fallback_models: str = "gemini-2.5-flash,gemini-3.1-flash-lite"

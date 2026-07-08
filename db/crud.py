@@ -1,9 +1,27 @@
+import secrets
+import string
 from datetime import datetime
 
 from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from db.models import Alert, FastTradingAuthorization, MarketAnalysisCache, Position, SigningIntent, TradeOrder, User, Wallet
+from db.models import (
+    Alert,
+    FastTradingAuthorization,
+    MarketAnalysisCache,
+    MarketSuggestion,
+    Position,
+    RewardTransaction,
+    SigningIntent,
+    TradeOrder,
+    User,
+    Wallet,
+)
+
+REFERRAL_SIGNUP_POINTS = 50
+REFERRED_BONUS_POINTS = 25
+MARKET_SUGGESTION_POINTS = 10
+TRADE_PLACED_POINTS = 5
 
 
 async def get_or_create_user(session: AsyncSession, telegram_id: int, username: str | None = None) -> User:
@@ -679,3 +697,247 @@ async def finalize_signing_intent(
     await session.commit()
     await session.refresh(intent)
     return intent
+
+
+# --- Web accounts (email/password), referrals, rewards, and market suggestions ---
+
+
+async def _generate_unique_referral_code(session: AsyncSession) -> str:
+    alphabet = string.ascii_uppercase + string.digits
+    for _ in range(10):
+        code = "".join(secrets.choice(alphabet) for _ in range(8))
+        result = await session.execute(select(User.id).where(User.referral_code == code))
+        if result.scalar_one_or_none() is None:
+            return code
+    raise RuntimeError("Unable to generate a unique referral code.")
+
+
+async def get_user_by_email(session: AsyncSession, email: str) -> User | None:
+    result = await session.execute(select(User).where(User.email == email.lower()))
+    return result.scalar_one_or_none()
+
+
+async def get_user_by_id(session: AsyncSession, user_id: int) -> User | None:
+    result = await session.execute(select(User).where(User.id == user_id))
+    return result.scalar_one_or_none()
+
+
+async def get_user_by_referral_code(session: AsyncSession, referral_code: str) -> User | None:
+    result = await session.execute(select(User).where(User.referral_code == referral_code.upper()))
+    return result.scalar_one_or_none()
+
+
+async def create_web_user(
+    session: AsyncSession,
+    email: str,
+    password_hash: str,
+    referred_by_code: str | None = None,
+) -> User:
+    referred_by = await get_user_by_referral_code(session, referred_by_code) if referred_by_code else None
+    user = User(
+        email=email.lower(),
+        password_hash=password_hash,
+        referral_code=await _generate_unique_referral_code(session),
+        referred_by_id=referred_by.id if referred_by else None,
+    )
+    session.add(user)
+    await session.commit()
+    await session.refresh(user)
+
+    if referred_by:
+        await award_points(session, referred_by.id, REFERRAL_SIGNUP_POINTS, "REFERRAL_SIGNUP", {"referred_user_id": user.id})
+        await award_points(session, user.id, REFERRED_BONUS_POINTS, "REFERRED_BONUS", {"referred_by_user_id": referred_by.id})
+    return user
+
+
+async def award_points(session: AsyncSession, user_id: int, points: int, reason: str, meta: dict | None = None) -> RewardTransaction:
+    transaction = RewardTransaction(user_id=user_id, points=points, reason=reason, reward_metadata=meta or {})
+    session.add(transaction)
+    await session.execute(
+        update(User).where(User.id == user_id).values(reward_points_balance=User.reward_points_balance + points)
+    )
+    await session.commit()
+    await session.refresh(transaction)
+    return transaction
+
+
+async def list_reward_transactions(session: AsyncSession, user_id: int, limit: int = 25) -> list[RewardTransaction]:
+    result = await session.execute(
+        select(RewardTransaction)
+        .where(RewardTransaction.user_id == user_id)
+        .order_by(RewardTransaction.created_at.desc())
+        .limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def count_referrals(session: AsyncSession, user_id: int) -> int:
+    result = await session.execute(select(func.count()).select_from(User).where(User.referred_by_id == user_id))
+    return result.scalar_one()
+
+
+async def create_market_suggestion(
+    session: AsyncSession,
+    user_id: int,
+    question: str,
+    category: str,
+    resolution_criteria: str,
+    source_url: str | None = None,
+) -> MarketSuggestion:
+    suggestion = MarketSuggestion(
+        user_id=user_id,
+        question=question,
+        category=category.lower(),
+        resolution_criteria=resolution_criteria,
+        source_url=source_url,
+    )
+    session.add(suggestion)
+    await session.commit()
+    await session.refresh(suggestion)
+    await award_points(session, user_id, MARKET_SUGGESTION_POINTS, "MARKET_SUGGESTED", {"suggestion_id": suggestion.id})
+    return suggestion
+
+
+async def list_market_suggestions(
+    session: AsyncSession,
+    status: str | None = None,
+    user_id: int | None = None,
+    limit: int = 50,
+) -> list[MarketSuggestion]:
+    query = select(MarketSuggestion)
+    if status:
+        query = query.where(MarketSuggestion.status == status.upper())
+    if user_id is not None:
+        query = query.where(MarketSuggestion.user_id == user_id)
+    query = query.order_by(MarketSuggestion.created_at.desc()).limit(limit)
+    result = await session.execute(query)
+    return list(result.scalars().all())
+
+
+async def get_market_suggestion(session: AsyncSession, suggestion_id: int) -> MarketSuggestion | None:
+    result = await session.execute(select(MarketSuggestion).where(MarketSuggestion.id == suggestion_id))
+    return result.scalar_one_or_none()
+
+
+async def review_market_suggestion(
+    session: AsyncSession,
+    suggestion_id: int,
+    reviewer_id: int,
+    status: str,
+    admin_note: str | None = None,
+) -> MarketSuggestion | None:
+    suggestion = await get_market_suggestion(session, suggestion_id)
+    if not suggestion:
+        return None
+    suggestion.status = status.upper()
+    suggestion.admin_note = admin_note
+    suggestion.reviewed_by_id = reviewer_id
+    suggestion.reviewed_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(suggestion)
+    return suggestion
+
+
+# --- User-id based wallet/trading helpers for web (JWT-authenticated) users ---
+
+
+async def add_wallet_for_user(session: AsyncSession, user_id: int, address: str) -> Wallet:
+    normalized = address.lower()
+    result = await session.execute(select(Wallet).where(Wallet.user_id == user_id, Wallet.address == normalized))
+    existing = result.scalar_one_or_none()
+    if existing:
+        await set_active_wallet(session, user_id, existing.id)
+        await session.refresh(existing)
+        return existing
+
+    result = await session.execute(select(Wallet).where(Wallet.user_id == user_id))
+    has_wallet = result.scalar_one_or_none() is not None
+    wallet = Wallet(user_id=user_id, address=normalized, is_active=not has_wallet)
+    session.add(wallet)
+    await session.commit()
+    await session.refresh(wallet)
+    return wallet
+
+
+async def list_wallets_for_user(session: AsyncSession, user_id: int) -> list[Wallet]:
+    result = await session.execute(select(Wallet).where(Wallet.user_id == user_id).order_by(Wallet.connected_at))
+    return list(result.scalars().all())
+
+
+async def create_signing_intent_for_user(
+    session: AsyncSession,
+    user_id: int,
+    wallet_address: str,
+    intent_type: str,
+    payload: dict,
+) -> SigningIntent:
+    intent = SigningIntent(
+        user_id=user_id,
+        wallet_address=wallet_address.lower(),
+        intent_type=intent_type,
+        payload=payload,
+    )
+    session.add(intent)
+    await session.commit()
+    await session.refresh(intent)
+    return intent
+
+
+async def upsert_trade_order_from_intent_for_user(
+    session: AsyncSession,
+    intent: SigningIntent,
+    submission: dict,
+) -> TradeOrder | None:
+    payload = intent.payload or {}
+    if not payload.get("market_id") or not intent.user_id:
+        return None
+
+    result = await session.execute(select(TradeOrder).where(TradeOrder.signing_intent_id == intent.id))
+    order = result.scalar_one_or_none()
+    if not order:
+        order = TradeOrder(
+            user_id=intent.user_id,
+            signing_intent_id=intent.id,
+            wallet_address=intent.wallet_address,
+            market_id=str(payload.get("market_id")),
+            market_question=str(payload.get("market_question") or "Selected market"),
+            outcome_token_id=payload.get("outcome_token_id"),
+            side=str(payload.get("side") or intent.intent_type),
+            order_type=intent.intent_type,
+            amount_usdc=float(payload.get("amount_usdc") or 0),
+            shares=float(payload.get("shares") or 0),
+            limit_price=float(payload.get("entry_price") or 0),
+        )
+        session.add(order)
+
+    order.status = _order_status_from_submission(submission)
+    order.polymarket_order_id = submission.get("order_id")
+    order.submission = submission
+    order.updated_at = datetime.utcnow()
+    await session.commit()
+    await session.refresh(order)
+
+    if order.status in {"FILLED", "PARTIALLY_FILLED", "SUBMITTED"}:
+        await award_points(session, intent.user_id, TRADE_PLACED_POINTS, "TRADE_PLACED", {"trade_order_id": order.id})
+    return order
+
+
+async def list_trade_orders_for_user(session: AsyncSession, user_id: int, limit: int = 10) -> list[TradeOrder]:
+    result = await session.execute(
+        select(TradeOrder).where(TradeOrder.user_id == user_id).order_by(TradeOrder.created_at.desc()).limit(limit)
+    )
+    return list(result.scalars().all())
+
+
+async def get_trade_order_for_user(session: AsyncSession, user_id: int, order_id: int) -> TradeOrder | None:
+    result = await session.execute(select(TradeOrder).where(TradeOrder.user_id == user_id, TradeOrder.id == order_id))
+    return result.scalar_one_or_none()
+
+
+async def list_open_positions_for_user(session: AsyncSession, user_id: int) -> list[Position]:
+    result = await session.execute(
+        select(Position)
+        .where(Position.user_id == user_id, Position.status.in_(["OPEN", "PARTIAL"]))
+        .order_by(Position.opened_at.desc())
+    )
+    return list(result.scalars().all())
