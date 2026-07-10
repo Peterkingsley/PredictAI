@@ -9,6 +9,7 @@ from telegram import Update
 from telegram.ext import ContextTypes
 
 from api.config import get_settings
+from api.services.order_intent import build_order_intent_typed_data, pre_trade_validation, token_id_for_side
 from api.services.order_submission import PolymarketOrderSubmissionService
 from api.services.polymarket import PolymarketService
 from api.services.wallets import get_usdc_balance, is_evm_address, short_address
@@ -134,7 +135,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 reply_markup=recovery_keyboard(),
             )
             return
-        validation_errors = await _pre_trade_validation(
+        validation_errors = await pre_trade_validation(
             market=market,
             side=flow["side"],
             amount=float(flow["amount"]),
@@ -159,7 +160,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 "shares": float(flow["shares"]),
                 "entry_price": float(flow["price"]),
                 "wallet_address": flow["wallet_address"],
-                "outcome_token_id": _token_id_for_side(market, flow["side"]),
+                "outcome_token_id": token_id_for_side(market, flow["side"]),
                 "source": "telegram_qr",
             }
             intent = await create_signing_intent(
@@ -175,7 +176,7 @@ async def trade_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
                 {
                     **base_payload,
                     "signature_kind": "predictai_eip712_order_intent",
-                    "typed_data": _build_order_intent_typed_data(intent.id, base_payload),
+                    "typed_data": build_order_intent_typed_data(intent.id, base_payload),
                 },
             )
 
@@ -237,12 +238,6 @@ def _price_for_side(market: dict, side: str) -> float:
     return max(float(market.get("no_price") or (100 - market.get("probability", 0)) / 100), 0.01)
 
 
-def _token_id_for_side(market: dict, side: str) -> str | None:
-    if side == "YES":
-        return market.get("yes_token_id")
-    return market.get("no_token_id")
-
-
 async def _show_side_step(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     flow = context.user_data["bet_flow"]
     market = flow["market"]
@@ -301,7 +296,7 @@ async def _prepare_amount(update: Update, context: ContextTypes.DEFAULT_TYPE, am
     side = flow["side"]
     price = _price_for_side(market, side)
     shares = amount / price if price > 0 else 0
-    validation_errors = await _pre_trade_validation(
+    validation_errors = await pre_trade_validation(
         market=market,
         side=side,
         amount=amount,
@@ -372,42 +367,6 @@ async def _fast_trading_review_state(telegram_id: int, wallet_address: str) -> t
     )
 
 
-async def _pre_trade_validation(
-    market: dict,
-    side: str,
-    amount: float,
-    shares: float,
-    wallet_address: str,
-) -> list[str]:
-    settings = get_settings()
-    errors = []
-    readiness = PolymarketOrderSubmissionService().readiness_report()
-    if not readiness["ready"]:
-        errors.append(readiness["message"])
-    if not market.get("active", True):
-        errors.append("Market is not active.")
-    if not _token_id_for_side(market, side):
-        errors.append(f"{side} outcome token is missing.")
-    min_order_size = max(float(settings.min_bet_usdc), float(market.get("min_order_size") or 0))
-    if amount < min_order_size:
-        errors.append(f"Minimum order size is {min_order_size:.2f} USDC.")
-    if amount <= 0 or shares <= 0:
-        errors.append("Order amount and shares must be greater than zero.")
-    try:
-        balance = await get_usdc_balance(wallet_address)
-    except Exception:
-        balance = None
-    if balance is not None and balance < amount:
-        errors.append(f"Wallet USDC balance is {balance:.2f}, below {amount:.2f} USDC.")
-    spender = settings.polymarket_usdc_spender
-    if readiness["ready"]:
-        if not spender:
-            errors.append("POLYMARKET_USDC_SPENDER is not configured, so USDC allowance cannot be verified.")
-        elif not is_evm_address(spender):
-            errors.append("Configured POLYMARKET_USDC_SPENDER is not a valid EVM address.")
-    return errors
-
-
 def _format_pre_trade_errors(errors: list[str]) -> str:
     lines = []
     for error in errors:
@@ -435,42 +394,6 @@ def _pre_trade_hint(error: str) -> str:
     if "greater than zero" in lowered:
         return "Choose a valid amount."
     return ""
-
-
-def _build_order_intent_typed_data(intent_id: int, payload: dict) -> dict:
-    return {
-        "types": {
-            "EIP712Domain": [
-                {"name": "name", "type": "string"},
-                {"name": "version", "type": "string"},
-                {"name": "chainId", "type": "uint256"},
-            ],
-            "PredictAIOrderIntent": [
-                {"name": "intentId", "type": "uint256"},
-                {"name": "wallet", "type": "address"},
-                {"name": "marketId", "type": "string"},
-                {"name": "side", "type": "string"},
-                {"name": "amountUsdcMicro", "type": "uint256"},
-                {"name": "limitPriceBps", "type": "uint256"},
-                {"name": "sharesMicro", "type": "uint256"},
-            ],
-        },
-        "primaryType": "PredictAIOrderIntent",
-        "domain": {
-            "name": "PredictAI",
-            "version": "1",
-            "chainId": get_settings().polygon_chain_id,
-        },
-        "message": {
-            "intentId": intent_id,
-            "wallet": payload["wallet_address"],
-            "marketId": str(payload["market_id"]),
-            "side": payload["side"],
-            "amountUsdcMicro": round(float(payload["amount_usdc"]) * 1_000_000),
-            "limitPriceBps": round(float(payload["entry_price"]) * 10_000),
-            "sharesMicro": round(float(payload["shares"]) * 1_000_000),
-        },
-    }
 
 
 def _signing_url(mini_app_url: str, intent_id: int, telegram_id: int) -> str:
