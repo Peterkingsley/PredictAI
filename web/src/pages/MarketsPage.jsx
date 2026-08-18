@@ -3,10 +3,10 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../lib/api.js";
 
 const CATEGORY_TABS = [
-  { key: "top", label: "Top" },
+  { key: "top", label: "Trending" },
   { key: "new", label: "New" },
   { key: "politics", label: "Politics" },
-  { key: "sports", label: "Matches" },
+  { key: "sports", label: "Sports" },
   { key: "crypto", label: "Crypto" },
 ];
 
@@ -25,87 +25,93 @@ export default function MarketsPage() {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const controller = new AbortController();
+    let ignore = false;
     async function load() {
       setLoading(true);
       setError("");
       try {
         let path = "/markets/top?limit=24";
-        if (query.trim().length >= 2) {
-          path = `/markets/search?q=${encodeURIComponent(query.trim())}&limit=24`;
-        } else if (tab === "new") {
-          path = "/markets/new?limit=24";
-        } else if (tab !== "top") {
-          path = `/markets/category/${tab}?limit=24`;
-        }
+        if (query.trim().length >= 2) path = `/markets/search?q=${encodeURIComponent(query.trim())}&limit=24`;
+        else if (tab === "new") path = "/markets/new?limit=24";
+        else if (tab !== "top") path = `/markets/category/${tab}?limit=24`;
         const data = await apiFetch(path);
-        setMarkets(Array.isArray(data) ? data : []);
+        if (!ignore) setMarkets(Array.isArray(data) ? data : []);
       } catch (err) {
-        setError(err.message || "Unable to load markets.");
+        if (!ignore) setError(err.message || "Unable to load markets.");
       } finally {
-        setLoading(false);
+        if (!ignore) setLoading(false);
       }
     }
     load();
-    return () => controller.abort();
+    return () => { ignore = true; };
   }, [tab, query]);
 
   return (
-    <div>
-      <section className="hero">
-        <h1>Create and predict everything</h1>
-        <p>
-          Browse live prediction markets, trade YES/NO outcomes with a Polygon wallet, and earn reward points for every
-          action &mdash; suggestions, trades, and referrals.
-        </p>
+    <div className="markets-screen">
+      <div className="markets-glow" />
+      <header className="markets-header">
+        <div>
+          <span className="eyebrow">LIVE PREDICTION MARKETS</span>
+          <h1>Trade what happens next.</h1>
+          <p>Choose a Polymarket event, then trade YES or NO from the new PredictAI probability board.</p>
+        </div>
+        <div className="market-count"><strong>{markets.length}</strong><span>markets loaded</span></div>
+      </header>
+
+      <section className="market-browser">
+        <div className="market-browser-toolbar">
+          <label className="market-search">
+            <span>⌕</span>
+            <input
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder="Search prediction markets"
+            />
+          </label>
+          <div className="market-tabs">
+            {CATEGORY_TABS.map((item) => (
+              <button
+                key={item.key}
+                className={tab === item.key && !query ? "active" : ""}
+                onClick={() => { setQuery(""); setTab(item.key); }}
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {loading ? <div className="market-loading">Loading live markets…</div> : null}
+        {error ? <div className="market-loading warn">{error}</div> : null}
+        {!loading && !error && markets.length === 0 ? <div className="market-loading">No markets found.</div> : null}
+
+        <div className="market-grid market-grid-euphoria">
+          {markets.map((market) => {
+            const yes = Math.max(0, Math.min(1, Number(market.yes_price || 0)));
+            const no = Math.max(0, Math.min(1, Number(market.no_price || 0)));
+            return (
+              <Link className="market-card market-card-euphoria" key={market.id} to={`/market/${market.id}`}>
+                <div className="market-card-top">
+                  <span className="category">{market.category || "Market"}</span>
+                  <span className={`live-dot ${market.active ? "active" : ""}`}>{market.active ? "LIVE" : "CLOSED"}</span>
+                </div>
+                <span className="question">{market.question}</span>
+                <div className="probability-bar" aria-label={`Yes ${Math.round(yes * 100)} percent`}>
+                  <span style={{ width: `${yes * 100}%` }} />
+                </div>
+                <div className="market-odds-line">
+                  <span><b>YES</b> {Math.round(yes * 100)}¢</span>
+                  <span><b>NO</b> {Math.round(no * 100)}¢</span>
+                </div>
+                <div className="meta-row">
+                  <span>{formatVolume(market.volume)} volume</span>
+                  <span>Open board →</span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
       </section>
-
-      <div className="search-row">
-        <input
-          placeholder="Search markets..."
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-        />
-      </div>
-
-      <div className="tabs">
-        {CATEGORY_TABS.map((item) => (
-          <button
-            key={item.key}
-            className={tab === item.key && !query ? "active" : ""}
-            onClick={() => {
-              setQuery("");
-              setTab(item.key);
-            }}
-          >
-            {item.label}
-          </button>
-        ))}
-      </div>
-
-      {loading ? <p className="status-text">Loading markets...</p> : null}
-      {error ? <p className="status-text warn">{error}</p> : null}
-
-      {!loading && !error && markets.length === 0 ? (
-        <div className="empty-state">No markets found. Try another search or category.</div>
-      ) : null}
-
-      <div className="market-grid">
-        {markets.map((market) => (
-          <Link className="market-card" key={market.id} to={`/market/${market.id}`}>
-            <span className="category">{market.category}</span>
-            <span className="question">{market.question}</span>
-            <div className="odds-row">
-              <span className="odds-pill yes">Yes {Math.round(market.yes_price * 100)}%</span>
-              <span className="odds-pill no">No {Math.round(market.no_price * 100)}%</span>
-            </div>
-            <div className="meta-row">
-              <span>Volume {formatVolume(market.volume)}</span>
-              <span>{market.active ? "Live" : "Closed"}</span>
-            </div>
-          </Link>
-        ))}
-      </div>
     </div>
   );
 }
