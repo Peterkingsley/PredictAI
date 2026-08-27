@@ -1,0 +1,24 @@
+{
+  "expo": {
+    "name": "PredictAI",
+    "slug": "predictai",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.predictai.app",
+      "infoPlist": {
+        "NSFaceIDUsageDescription": "Use Face ID to securely unlock your PredictAI account."
+      }
+    },
+    "android": {
+      "package": "com.predictai.app",
+      "adaptiveIcon": {
+        "backgroundColor": "#0D0E10"
+      }
+    },
+    "plugins": [["expo-local-authentication", {"faceIDPermission": "Use Face ID to securely unlock your PredictAI account."}]]
+  }
+}
