@@ -23,7 +23,7 @@ export default function App() {
         {route === 'password' && <PasswordScreen email={email} onBack={() => setRoute('login')} onForgotPassword={() => setRoute('forgot-password')} onSignUp={() => setRoute('signup')} onAuthenticated={() => setRoute('app')} />}
         {route === 'forgot-password' && <ForgotPasswordScreen initialEmail={email} onBack={() => setRoute('password')} onSignUp={() => setRoute('signup')} />}
         {route === 'biometric' && <BiometricScreen email={email} onUsePassword={() => setRoute('password')} />}
-        {route === 'app' && <MainAppScreen />}
+        {route === 'app' && <MainAppScreen email={email} onSignOut={() => { setEmail(''); setRoute('login'); }} />}
       </SafeAreaView>
     </SafeAreaProvider>
   );
