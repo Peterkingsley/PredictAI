@@ -1,4 +1,10 @@
-export type Outcome = { label: string; probability: number; odds: string; color?: string };
+export type Outcome = {
+  label: string;
+  probability: number;
+  odds: string;
+  color?: string;
+  tradeAction?: 'Buy' | 'Sell';
+};
 export type Market = {
   id: string;
   title: string;

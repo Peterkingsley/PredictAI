@@ -38,9 +38,11 @@ const announcements = [
   },
 ];
 
+const HERO_HEIGHT = 140;
+
 export function AnnouncementCarousel() {
   const { width } = useWindowDimensions();
-  const pageWidth = width - 32;
+  const pageWidth = width;
   const scrollRef = useRef<ScrollView>(null);
   const [page, setPage] = useState(0);
 
@@ -77,4 +79,4 @@ export function AnnouncementCarousel() {
   </View>;
 }
 
-const styles = StyleSheet.create({ root: { backgroundColor: '#151719', paddingBottom: 7 }, slide: { paddingHorizontal: 16, paddingTop: 10 }, banner: { minHeight: 112, borderRadius: 14, padding: 15, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' }, copy: { flex: 1, paddingRight: 12 }, eyebrow: { fontSize: 9, fontWeight: '800', letterSpacing: 1 }, title: { color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '700', marginTop: 5 }, description: { color: '#B2B4B9', fontSize: 11, lineHeight: 16, marginTop: 5 }, iconCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 1, backgroundColor: 'rgba(0,0,0,.18)', alignItems: 'center', justifyContent: 'center' }, dots: { height: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4 }, dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#46484D' }, dotActive: { width: 12, backgroundColor: colors.text } });
+const styles = StyleSheet.create({ root: { height: HERO_HEIGHT, backgroundColor: '#151719' }, slide: { height: HERO_HEIGHT }, banner: { flex: 1, paddingHorizontal: 16, paddingTop: 15, paddingBottom: 28, flexDirection: 'row', alignItems: 'center', overflow: 'hidden' }, copy: { flex: 1, paddingRight: 12 }, eyebrow: { fontSize: 9, fontWeight: '800', letterSpacing: 1 }, title: { color: colors.text, fontSize: 17, lineHeight: 22, fontWeight: '700', marginTop: 5 }, description: { color: '#B2B4B9', fontSize: 11, lineHeight: 16, marginTop: 5 }, iconCircle: { width: 62, height: 62, borderRadius: 31, borderWidth: 1, backgroundColor: 'rgba(0,0,0,.18)', alignItems: 'center', justifyContent: 'center' }, dots: { position: 'absolute', right: 0, bottom: 5, left: 0, height: 18, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 4 }, dot: { width: 4, height: 4, borderRadius: 2, backgroundColor: '#72757B' }, dotActive: { width: 12, backgroundColor: colors.text } });
