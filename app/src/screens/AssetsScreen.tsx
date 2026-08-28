@@ -1,32 +1,37 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { EmptyState } from '../components/EmptyState';
 import { colors } from '../theme/colors';
-import { WithdrawalScreen } from './WithdrawalScreen';
 import { DepositScreen } from './DepositScreen';
+import { defaultWalletSettings, WalletSettingsScreen } from './WalletSettingsScreen';
+import { WithdrawalScreen } from './WithdrawalScreen';
 
 export function AssetsScreen({ onHistory }: { onHistory: () => void }) {
   const [withdrawing, setWithdrawing] = useState(false);
   const [depositing, setDepositing] = useState(false);
-  const [modeOpen, setModeOpen] = useState(false);
-  const [mode, setMode] = useState<'prediction' | 'trading'>('prediction');
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [settings, setSettings] = useState(defaultWalletSettings);
+  const enabledAssets = (['USDC', 'USDT'] as const).filter((asset) => settings.supportedAssets[asset]);
 
-  if (withdrawing) return <WithdrawalScreen onBack={() => setWithdrawing(false)} onComplete={() => setWithdrawing(false)} />;
-  if (depositing) return <DepositScreen onBack={() => setDepositing(false)} />;
+  if (withdrawing) return <WithdrawalScreen dailyLimit={Number(settings.withdrawalLimit) || 0} defaultNetwork={settings.defaultNetwork} enabledAssets={enabledAssets} feeSpeed={settings.feeSpeed} onBack={() => setWithdrawing(false)} onComplete={() => setWithdrawing(false)} requireBiometrics={settings.requireBiometrics} requireConfirmation={settings.withdrawalConfirmation} />;
+  if (depositing) return <DepositScreen enabledAssets={enabledAssets} onBack={() => setDepositing(false)} />;
+  if (settingsOpen) return <WalletSettingsScreen onBack={() => setSettingsOpen(false)} onOpenDeposit={() => { setSettingsOpen(false); setDepositing(true); }} onOpenHistory={onHistory} onUpdate={setSettings} settings={settings} />;
+
+  const balance = settings.hideBalances ? '••••' : settings.currency === 'NGN' ? '₦0.00' : settings.currency === 'USDC' ? '0.00 USDC' : '$0.00';
+  const hiddenValue = settings.hideBalances ? '••••' : '$0';
 
   return <View style={styles.root}>
-    <View style={styles.header}><Ionicons color={colors.text} name="chevron-back" size={23} /><Text allowFontScaling={false} style={styles.headerTitle}>Wallet</Text><View style={styles.actions}><Pressable onPress={onHistory}><Ionicons color={colors.text} name="documents-outline" size={20} /></Pressable><Pressable onPress={() => setModeOpen(true)}><Ionicons color={colors.text} name="settings-outline" size={21} /></Pressable></View></View>
+    <View style={styles.header}><Ionicons color={colors.text} name="chevron-back" size={23} /><Text allowFontScaling={false} style={styles.headerTitle}>Wallet</Text><View style={styles.actions}><Pressable onPress={onHistory}><Ionicons color={colors.text} name="documents-outline" size={20} /></Pressable><Pressable accessibilityLabel="Wallet settings" onPress={() => setSettingsOpen(true)}><Ionicons color={colors.text} name="settings-outline" size={21} /></Pressable></View></View>
     <View style={styles.content}>
       <Text allowFontScaling={false} style={styles.label}>Total Balance  ◉</Text>
-      <Text allowFontScaling={false} style={styles.balance}>$0.00</Text>
+      <Text allowFontScaling={false} style={styles.balance}>{balance}</Text>
       <View style={styles.walletActions}><Pressable onPress={() => setDepositing(true)} style={styles.add}><Text allowFontScaling={false} style={styles.addText}>Add</Text></Pressable><Pressable onPress={() => setWithdrawing(true)} style={styles.withdraw}><Ionicons color={colors.text} name="arrow-up-outline" size={16} /><Text allowFontScaling={false} style={styles.withdrawText}>Withdraw</Text></Pressable></View>
-      <Text allowFontScaling={false} style={styles.label}>Unrealized PNL  <Text style={styles.value}>$0 (0%)</Text></Text>
-      <View style={styles.stats}><View><Text style={styles.label}>Today's Realized PNL</Text><Text style={styles.statValue}>$0 (0%)</Text></View><View><Text style={styles.label}>Position Value</Text><Text style={styles.statValue}>$0</Text></View></View>
+      <Text allowFontScaling={false} style={styles.label}>Unrealized PNL  <Text style={styles.value}>{hiddenValue}{settings.hideBalances ? '' : ' (0%)'}</Text></Text>
+      <View style={styles.stats}><View><Text style={styles.label}>Today's Realized PNL</Text><Text style={styles.statValue}>{hiddenValue}{settings.hideBalances ? '' : ' (0%)'}</Text></View><View><Text style={styles.label}>Position Value</Text><Text style={styles.statValue}>{hiddenValue}</Text></View></View>
       <View style={styles.tabs}><Text style={styles.activeTab}>Positions (0)</Text><Text style={styles.tab}>Order</Text><Text style={styles.tab}>Filled</Text></View>
       <EmptyState />
     </View>
-    <Modal transparent animationType="slide" visible={modeOpen} onRequestClose={() => setModeOpen(false)}><Pressable style={styles.overlay} onPress={() => setModeOpen(false)}><Pressable style={styles.sheet} onPress={() => undefined}><View style={styles.handle} /><Text style={styles.sheetTitle}>Select Mode</Text>{(['prediction', 'trading'] as const).map((item) => <Pressable key={item} onPress={() => setMode(item)} style={[styles.mode, mode === item && styles.modeSelected]}><Ionicons color={colors.text} name={item === 'prediction' ? 'analytics-outline' : 'list-outline'} size={22} /><View style={styles.modeCopy}><Text style={styles.modeTitle}>{item === 'prediction' ? 'Prediction Mode' : 'Trading Mode'}</Text><Text style={styles.modeDescription}>{item === 'prediction' ? 'Display odds and market-implied probability.' : 'Track liquidity depth and the order book.'}</Text></View>{mode === item ? <Ionicons color={colors.accent} name="checkmark" size={22} /> : null}</Pressable>)}</Pressable></Pressable></Modal>
   </View>;
 }
 

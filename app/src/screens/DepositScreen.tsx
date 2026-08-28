@@ -13,8 +13,8 @@ const depositAddresses: Record<Chain, string> = {
   Base: '0xE12A68c90B4F7d351A6eD20C9F83B47A50D162fe',
 };
 
-export function DepositScreen({ onBack }: { onBack: () => void }) {
-  const [asset, setAsset] = useState<Asset>('USDC');
+export function DepositScreen({ enabledAssets = ['USDC', 'USDT'], onBack }: { enabledAssets?: readonly Asset[]; onBack: () => void }) {
+  const [asset, setAsset] = useState<Asset>(enabledAssets[0] ?? 'USDC');
   const [chain, setChain] = useState<Chain>('Polygon');
   const [copied, setCopied] = useState(false);
   const address = useMemo(() => depositAddresses[chain], [chain]);
@@ -29,7 +29,7 @@ export function DepositScreen({ onBack }: { onBack: () => void }) {
     <View style={styles.header}><Pressable onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={24} /></Pressable><Text allowFontScaling={false} style={styles.headerTitle}>Deposit</Text><View style={styles.headerSpacer} /></View>
     <View style={styles.content}>
       <Text allowFontScaling={false} style={styles.label}>Deposit asset</Text>
-      <View style={styles.options}>{(['USDC', 'USDT'] as Asset[]).map((item) => <Pressable key={item} onPress={() => setAsset(item)} style={[styles.assetOption, asset === item && styles.selected]}><View style={[styles.coin, item === 'USDT' && styles.usdtCoin]}><Text style={styles.coinText}>$</Text></View><Text allowFontScaling={false} style={styles.optionText}>{item}</Text>{asset === item ? <Ionicons color={colors.accent} name="checkmark-circle" size={19} /> : null}</Pressable>)}</View>
+      <View style={styles.options}>{enabledAssets.map((item) => <Pressable key={item} onPress={() => setAsset(item)} style={[styles.assetOption, asset === item && styles.selected]}><View style={[styles.coin, item === 'USDT' && styles.usdtCoin]}><Text style={styles.coinText}>$</Text></View><Text allowFontScaling={false} style={styles.optionText}>{item}</Text>{asset === item ? <Ionicons color={colors.accent} name="checkmark-circle" size={19} /> : null}</Pressable>)}</View>
       <Text allowFontScaling={false} style={styles.label}>Select network</Text>
       <View style={styles.chains}>{(['Ethereum', 'Polygon', 'Arbitrum', 'Base'] as Chain[]).map((item) => <Pressable key={item} onPress={() => { setChain(item); setCopied(false); }} style={[styles.chain, chain === item && styles.chainSelected]}><Text allowFontScaling={false} style={[styles.chainText, chain === item && styles.chainTextSelected]}>{item}</Text></Pressable>)}</View>
       <View style={styles.depositCard}><View style={styles.qrPlaceholder}><Ionicons color={colors.text} name="qr-code-outline" size={94} /></View><Text allowFontScaling={false} style={styles.depositTitle}>{asset} deposit address</Text><Text allowFontScaling={false} style={styles.network}>Network: {chain}</Text><Pressable onPress={copyAddress} style={styles.addressRow}><Text allowFontScaling={false} numberOfLines={2} style={styles.address}>{address}</Text><Ionicons color={copied ? colors.accent : colors.text} name={copied ? 'checkmark-circle' : 'copy-outline'} size={20} /></Pressable><Pressable onPress={copyAddress} style={styles.copyButton}><Text allowFontScaling={false} style={styles.copyText}>{copied ? 'Address copied' : 'Copy address'}</Text></Pressable></View>
