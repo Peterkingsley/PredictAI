@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ProbabilityChart } from '../components/ProbabilityChart';
+import { EventAlertsModal } from '../components/EventAlertsModal';
 import { PredictionOrderModal, type PredictionOrder } from '../components/PredictionOrderModal';
 import { colors, marketOutcomeColors } from '../theme/colors';
 import type { Market } from '../types/market';
@@ -18,6 +19,7 @@ function OutcomeChoice({ label, odds, value, color, sell, selected, onSelect }: 
 export function MarketDetailScreen({ market, onBack }: { market: Market; onBack: () => void }) {
   const [selectedPrediction, setSelectedPrediction] = useState('');
   const [order, setOrder] = useState<PredictionOrder | null>(null);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const select = (id: string, outcomeLabel: string, odds: string) => {
     setSelectedPrediction(id);
     setOrder({ marketTitle: market.title, outcomeLabel, odds });
@@ -28,7 +30,7 @@ export function MarketDetailScreen({ market, onBack }: { market: Market; onBack:
   if (crypto) return <CryptoMarketDetailScreen market={market} onBack={onBack} />;
 
   return <View style={styles.root}>
-    <View style={styles.header}><Pressable onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={25} /></Pressable><Ionicons color={colors.text} name="settings-outline" size={23} /></View>
+    <View style={styles.header}><Pressable onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={25} /></Pressable><Pressable accessibilityLabel="Event alerts" hitSlop={10} onPress={() => setAlertsOpen(true)}><Ionicons color={colors.text} name="settings-outline" size={23} /></Pressable></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text allowFontScaling={false} style={styles.title}>{market.title}</Text>
       {market.outcomes.slice(0, 4).map((outcome, index) => <View key={outcome.label} style={styles.legend}><View style={[styles.legendDot, { backgroundColor: outcome.color ?? marketOutcomeColors[index] ?? colors.accent }]} /><Text allowFontScaling={false} numberOfLines={1} style={styles.legendLabel}>{outcome.label}</Text><Text allowFontScaling={false} style={[styles.legendValue, outcome.tradeAction === 'Sell' && styles.sellLegendValue]}>{crypto ? outcome.tradeAction : `${outcome.probability}%`}</Text></View>)}
@@ -49,6 +51,7 @@ export function MarketDetailScreen({ market, onBack }: { market: Market; onBack:
       <View style={styles.timelineStep}><Ionicons color={colors.text} name="checkmark-circle" size={16} /><View><Text style={styles.timelineLabel}>Market open</Text><Text style={styles.timelineDate}>2026-06-27 21:49</Text></View></View><View style={styles.rail} /><View style={styles.timelineStep}><Ionicons color={colors.text} name="checkmark-circle" size={16} /><View><Text style={styles.timelineLabel}>Market closed  <Text style={styles.ended}>Ended</Text></Text><Text style={styles.timelineDate}>2027-07-11 12:00</Text></View></View><View style={styles.rail} /><View style={styles.timelineStep}><Ionicons color={colors.textFaint} name="time" size={16} /><View><Text style={styles.timelineLabel}>Market resolved</Text><Text style={styles.timelineDate}>After official result confirmation</Text></View></View>
     </ScrollView>
     <PredictionOrderModal order={order} onClose={() => { setOrder(null); setSelectedPrediction(''); }} />
+    <EventAlertsModal marketTitle={market.title} onClose={() => setAlertsOpen(false)} visible={alertsOpen} />
   </View>;
 }
 

@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CryptoProbabilityChart } from '../components/CryptoProbabilityChart';
+import { EventAlertsModal } from '../components/EventAlertsModal';
 import { PredictionOrderModal, type PredictionOrder } from '../components/PredictionOrderModal';
 import { colors, marketOutcomeColors } from '../theme/colors';
 import type { Market } from '../types/market';
@@ -12,6 +13,7 @@ export function CryptoMarketDetailScreen({ market, onBack }: { market: Market; o
   const [expanded, setExpanded] = useState(false);
   const [selectedOutcome, setSelectedOutcome] = useState('');
   const [order, setOrder] = useState<PredictionOrder | null>(null);
+  const [alertsOpen, setAlertsOpen] = useState(false);
   const selectOutcome = (outcome: Market['outcomes'][number]) => {
     setSelectedOutcome(outcome.label);
     setOrder({ marketTitle: market.title, outcomeLabel: outcome.label, odds: outcome.odds, tradeAction: outcome.tradeAction });
@@ -20,7 +22,7 @@ export function CryptoMarketDetailScreen({ market, onBack }: { market: Market; o
   return <View style={styles.root}>
     <View style={styles.header}>
       <Pressable hitSlop={12} onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={27} /></Pressable>
-      <Ionicons color={colors.text} name="settings-outline" size={25} />
+      <Pressable accessibilityLabel="Event alerts" hitSlop={10} onPress={() => setAlertsOpen(true)}><Ionicons color={colors.text} name="settings-outline" size={25} /></Pressable>
     </View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <Text allowFontScaling={false} style={styles.title}>{market.title}</Text>
@@ -52,6 +54,7 @@ export function CryptoMarketDetailScreen({ market, onBack }: { market: Market; o
       </View>
     </ScrollView>
     <PredictionOrderModal order={order} onClose={() => { setOrder(null); setSelectedOutcome(''); }} />
+    <EventAlertsModal marketTitle={market.title} onClose={() => setAlertsOpen(false)} visible={alertsOpen} />
   </View>;
 }
 
