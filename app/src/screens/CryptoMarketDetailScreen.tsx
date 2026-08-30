@@ -2,14 +2,16 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CryptoProbabilityChart } from '../components/CryptoProbabilityChart';
+import { AIEdgeCard } from '../components/AIEdgeCard';
 import { EventAlertsModal } from '../components/EventAlertsModal';
 import { PredictionOrderModal, type PredictionOrder } from '../components/PredictionOrderModal';
 import { colors, marketOutcomeColors } from '../theme/colors';
+import { getAIAnalysisPreview } from '../services/aiAnalysis';
 import type { Market } from '../types/market';
 
 const ranges = ['1D', '1W', '1M', 'All'] as const;
 
-export function CryptoMarketDetailScreen({ market, onBack }: { market: Market; onBack: () => void }) {
+export function CryptoMarketDetailScreen({ market, onAskAI, onBack }: { market: Market; onAskAI: () => void; onBack: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const [selectedOutcome, setSelectedOutcome] = useState('');
   const [order, setOrder] = useState<PredictionOrder | null>(null);
@@ -38,6 +40,7 @@ export function CryptoMarketDetailScreen({ market, onBack }: { market: Market; o
         <Text allowFontScaling={false} style={styles.volume}>{market.volume} <Text style={styles.volumeLabel}>Volume</Text></Text>
         <View style={styles.ranges}>{ranges.map((range) => <Text allowFontScaling={false} key={range} style={[styles.range, range === '1D' && styles.rangeActive]}>{range}</Text>)}<Ionicons color={colors.textMuted} name="list-outline" size={21} /></View>
       </View>
+      <View style={styles.aiCard}><AIEdgeCard analysis={getAIAnalysisPreview(market)} onPress={onAskAI} /></View>
       <View style={styles.outcomes}>
         {(expanded ? market.outcomes : market.outcomes.slice(0, 3)).map((outcome) => <Pressable key={outcome.label} onPress={() => selectOutcome(outcome)} style={[styles.outcomeRow, selectedOutcome === outcome.label && styles.outcomeSelected]}>
           <View style={styles.coin}><Text allowFontScaling={false} style={styles.coinText}>₿</Text></View>
@@ -75,6 +78,7 @@ const styles = StyleSheet.create({
   ranges: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   range: { minWidth: 32, paddingHorizontal: 7, paddingVertical: 8, color: '#666971', fontSize: 12, textAlign: 'center' },
   rangeActive: { color: colors.text, backgroundColor: '#25272C', borderRadius: 7 },
+  aiCard: { marginTop: 18 },
   outcomes: { marginTop: 16 },
   outcomeRow: { minHeight: 60, flexDirection: 'row', alignItems: 'center', gap: 10 },
   outcomeSelected: { marginHorizontal: -7, paddingHorizontal: 7, borderRadius: 10, backgroundColor: '#171D12' },

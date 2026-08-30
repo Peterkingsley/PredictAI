@@ -5,6 +5,7 @@ import { PredictionOrderModal, type PredictionOrder } from '../components/Predic
 import { markets } from '../services/marketData';
 import { colors } from '../theme/colors';
 import type { Market } from '../types/market';
+import { AIAnalysisButton } from '../components/AIAnalysisButton';
 
 const exploreMarkets: Market[] = [
   { id: 'ceasefire', title: 'US–Iran ceasefire continues through…?', category: 'Recommend', subcategory: 'World', volume: '$3.96M', more: 2, outcomes: [{ label: 'August 25', odds: '1.00x', probability: 100 }, { label: 'August 31', odds: '1.03x', probability: 97 }, { label: 'September 15', odds: '1.09x', probability: 91 }], rules: 'This market resolves according to official statements from both governments and a consensus of credible international reporting.' },
@@ -12,7 +13,7 @@ const exploreMarkets: Market[] = [
   markets.find((market) => market.id === 'bitcoin-2026')!,
 ];
 
-export function ExploreScreen({ onMarket }: { onMarket: (market: Market) => void }) {
+export function ExploreScreen({ onAskAI, onMarket }: { onAskAI: (market: Market) => void; onMarket: (market: Market) => void }) {
   const [index, setIndex] = useState(0);
   const [order, setOrder] = useState<PredictionOrder | null>(null);
   const market = exploreMarkets[index] ?? exploreMarkets[0]!;
@@ -25,6 +26,7 @@ export function ExploreScreen({ onMarket }: { onMarket: (market: Market) => void
       <View style={[styles.hero, market.category === 'Sports' ? styles.sportsHero : market.category === 'Crypto' ? styles.cryptoHero : styles.worldHero]}><Text style={styles.badge}>{market.subcategory}</Text><Text style={styles.heroIcon}>{market.category === 'Sports' ? '🏀' : market.category === 'Crypto' ? '₿' : '🇺🇸  🇮🇷'}</Text><Text style={styles.marketTitle}>{market.title}</Text></View>
       <View style={styles.outcomes}>
         {market.outcomes.slice(0, 3).map((outcome) => <View key={outcome.label} style={styles.outcome}><View style={styles.smallIcon}><Text>{market.category === 'Sports' ? '🏆' : market.category === 'Crypto' ? '₿' : '🇺🇸'}</Text></View><Text numberOfLines={1} style={styles.outcomeName}>{outcome.label}</Text><Text style={styles.odds}>{outcome.odds}</Text><Pressable onPress={(event) => { event.stopPropagation(); predict(outcome); }} style={({ pressed }) => [styles.probability, outcome.tradeAction === 'Sell' && styles.sellAction, pressed && styles.actionPressed]}><Text style={[styles.probabilityText, outcome.tradeAction === 'Sell' && styles.sellActionText]}>{market.category === 'Crypto' ? outcome.tradeAction : `${outcome.probability}%`}</Text></Pressable></View>)}
+        <AIAnalysisButton onPress={() => onAskAI(market)} />
         <View style={styles.meta}><Text style={styles.metaText}>{market.volume} Volume</Text><Text style={styles.metaText}>+{market.more} More⌄</Text></View>
       </View>
     </Pressable>

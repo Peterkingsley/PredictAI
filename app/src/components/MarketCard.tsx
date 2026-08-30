@@ -1,14 +1,16 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { colors } from '../theme/colors';
 import type { Market, Outcome } from '../types/market';
+import { AIAnalysisButton } from './AIAnalysisButton';
 
-export function MarketCard({ market, onPress, onPredict }: { market: Market; onPress: () => void; onPredict: (outcome: Outcome) => void }) {
+export function MarketCard({ market, onAskAI, onPress, onPredict }: { market: Market; onAskAI: () => void; onPress: () => void; onPredict: (outcome: Outcome) => void }) {
   return <Pressable onPress={onPress} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
     <View style={styles.heading}><Text allowFontScaling={false} numberOfLines={2} style={styles.title}>{market.title}</Text></View>
     {market.outcomes.slice(0, 2).map((outcome, index) => <View key={outcome.label} style={styles.outcome}>
       <View style={[styles.token, { backgroundColor: market.category === 'Crypto' ? '#f7931a' : index ? '#43464d' : colors.accent }]}><Text style={styles.tokenText}>{market.category === 'Crypto' ? '₿' : outcome.label.slice(0, 1)}</Text></View>
       <Text numberOfLines={1} style={styles.outcomeName}>{outcome.label}</Text><Text style={styles.odds}>{outcome.odds}</Text><Pressable accessibilityRole="button" onPress={(event) => { event.stopPropagation(); onPredict(outcome); }} style={({ pressed }) => [styles.probability, outcome.tradeAction === 'Sell' && styles.sellAction, pressed && styles.actionPressed]}><Text style={[styles.probabilityText, outcome.tradeAction === 'Sell' && styles.sellActionText]}>{market.category === 'Crypto' ? outcome.tradeAction : `${outcome.probability}%`}</Text></Pressable>
     </View>)}
+    <AIAnalysisButton onPress={onAskAI} />
     <View style={styles.meta}><Text style={styles.metaText}>{market.volume} Volume</Text><Text style={styles.metaText}>+{market.more} More⌄</Text></View>
   </Pressable>;
 }
