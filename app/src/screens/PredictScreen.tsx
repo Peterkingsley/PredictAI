@@ -10,6 +10,7 @@ import type { Market, Outcome } from '../types/market';
 import { DepositScreen } from './DepositScreen';
 import { HomeWalletHeader } from '../components/HomeWalletHeader';
 import { ProfileScreen } from './ProfileScreen';
+import { appNotifications, NotificationsScreen } from './NotificationsScreen';
 
 const categories = ['Recommend', 'All', 'Sports', 'Crypto'] as const;
 const subcategories = { Recommend: ['HOT', 'Favorite'], All: ['HOT', 'New'], Sports: ['Soccer', 'NBA', 'NFL', 'EPL'], Crypto: ['Target Price', 'Tiered', 'Airdrops'] } as const;
@@ -21,6 +22,8 @@ export function PredictScreen({ email, onMarket, onSignOut }: { email: string; o
   const [order, setOrder] = useState<PredictionOrder | null>(null);
   const [depositing, setDepositing] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [readNotificationIds, setReadNotificationIds] = useState<string[]>(() => appNotifications.filter((notification) => notification.read).map((notification) => notification.id));
   const visible = useMemo(() => category === 'All' ? markets : markets.filter((market) => market.category === category), [category]);
   const chooseCategory = (next: (typeof categories)[number]) => { setCategory(next); setSub(subcategories[next][0]); };
   const predict = (market: Market, outcome: Outcome) => {
@@ -30,10 +33,11 @@ export function PredictScreen({ email, onMarket, onSignOut }: { email: string; o
 
   if (depositing) return <DepositScreen onBack={() => setDepositing(false)} />;
   if (profileOpen) return <ProfileScreen email={email} onBack={() => setProfileOpen(false)} onSignOut={onSignOut} />;
+  if (notificationsOpen) return <NotificationsScreen onBack={() => setNotificationsOpen(false)} onMarkAllRead={() => setReadNotificationIds(appNotifications.map((notification) => notification.id))} onRead={(id) => setReadNotificationIds((current) => current.includes(id) ? current : [...current, id])} readIds={readNotificationIds} />;
 
   return <View style={styles.root}>
     <ScrollView showsVerticalScrollIndicator={false}>
-    <HomeWalletHeader onDeposit={() => setDepositing(true)} onProfile={() => setProfileOpen(true)} />
+    <HomeWalletHeader hasUnreadNotifications={appNotifications.some((notification) => !notification.read && !readNotificationIds.includes(notification.id))} onDeposit={() => setDepositing(true)} onNotifications={() => setNotificationsOpen(true)} onProfile={() => setProfileOpen(true)} />
     {category === 'Recommend' ? <AnnouncementCarousel /> : null}
     <View style={styles.ticker}><Ionicons color={colors.textMuted} name="volume-medium-outline" size={20} /><Text numberOfLines={1} style={styles.tickerText}>Live markets · Trade on real-world outcomes responsibly</Text></View>
     <View style={styles.categories}>{categories.map((item) => <Pressable key={item} onPress={() => chooseCategory(item)}><Text style={[styles.category, category === item && styles.categoryActive]}>{item}</Text></Pressable>)}</View>
