@@ -25,3 +25,192 @@
 @media(min-width:1600px){.workspace{grid-template-columns:minmax(0,1fr) 320px}.page{max-width:1370px}.market-grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:1280px){:root{--sidebar-width:210px}.context-rail{display:none}.workspace{grid-template-columns:1fr}.topbar{grid-template-columns:180px 1fr auto}.social-layout{grid-template-columns:1fr 250px}.page{padding-left:24px;padding-right:24px}.market-grid{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:1120px){.app-shell{--sidebar-width:76px}.sidebar .nav-item span,.sidebar-brand strong,.collapse-button span{display:none}.sidebar .nav-item{justify-content:center;padding:0}.profile-button span{display:none}.topbar-title>.icon-button{display:grid}.detail-layout{grid-template-columns:1fr 330px}.social-layout{grid-template-columns:1fr}.social-layout>aside{display:none}}
+
+/* X-inspired desktop sizing: readable 15–20px body UI, larger controls and rails. */
+@media (min-width:1121px){
+  :root{--sidebar-width:278px;--topbar:76px}
+  body{font-size:16px}
+  .app-shell.is-collapsed{--sidebar-width:84px}
+  .sidebar{padding:20px 16px}
+  .sidebar-brand{height:48px;margin-bottom:30px;padding:0 10px;gap:13px}
+  .sidebar-brand .brand-mark{width:40px;height:40px;font-size:21px}
+  .sidebar-brand strong{font-size:20px}
+  .nav-item{height:54px;padding:0 16px;gap:15px;font-size:16px;border-radius:11px}
+  .nav-item svg{width:22px;height:22px}
+  .collapse-button{height:48px;padding:0 16px;font-size:14px}
+  .topbar{grid-template-columns:220px minmax(400px,620px) 1fr;padding:0 28px;gap:28px}
+  .topbar-title strong{font-size:16px}
+  .global-search{height:46px;padding:0 13px;gap:11px;border-radius:12px}
+  .global-search input{font-size:15px}
+  .global-search svg{width:19px;height:19px}
+  .global-search kbd{font-size:12px}
+  .profile-button{font-size:14px;gap:10px}
+  .topbar .avatar--sm{width:36px;height:36px;font-size:11px}
+  .topbar .icon-button{width:44px;height:44px}
+  .workspace{grid-template-columns:minmax(0,1fr) 340px}
+  .context-rail{padding:24px 20px}
+  .page{max-width:1380px;padding:34px 34px 80px}
+  .narrow-page{max-width:960px}
+  .page-header{margin-bottom:30px}
+  .page-header h1{font-size:34px;margin:7px 0}
+  .page-header p{font-size:16px;line-height:1.6}
+  .eyebrow{font-size:12px}
+  .button{min-height:46px;padding:0 19px;font-size:15px;border-radius:10px}
+  .icon-button{width:44px;height:44px}
+  .icon-button svg{width:21px;height:21px}
+  .section-heading{margin:30px 0 18px}
+  .section-heading h2{font-size:22px}
+  .section-heading p{font-size:14px}
+  .tabs{gap:30px}
+  .tabs>button{font-size:15px;padding:14px 3px}
+  .tabs.small>button{font-size:13px;padding:11px 5px}
+  .chip-row button,.quick-amounts button{font-size:13px;padding:9px 15px}
+  .content-card,.form-card,.settings-card{padding:22px;border-radius:15px}
+  .empty-state{padding:76px 28px}
+  .empty-state h3{font-size:20px}
+  .empty-state p{font-size:15px}
+  .empty-icon{width:66px;height:66px}
+  .empty-icon svg{width:30px;height:30px}
+  .rail-card{padding:19px;border-radius:15px;margin-bottom:17px}
+  .rail-card h3{font-size:17px;margin-bottom:15px}
+  .rail-card>button{padding:15px 0;font-size:14px;line-height:1.45}
+  .rail-card small,.rail-card p,.rail-note p{font-size:12px;line-height:1.5}
+  .rail-card.compact strong{font-size:14px}
+  .pulse{padding:12px 0;font-size:14px}
+  .notification-popover{width:380px}
+  .notification-popover>button{padding:14px;font-size:14px}
+
+  .wallet-strip{padding:18px 21px;gap:40px;border-radius:14px}
+  .wallet-strip>div:first-child{min-width:180px}
+  .wallet-strip span{font-size:13px}
+  .wallet-strip strong{font-size:25px}
+  .wallet-strip .pnl-block strong{font-size:16px}
+  .hero-banner{height:330px;padding:44px 48px;border-radius:18px}
+  .hero-copy>span{font-size:12px}
+  .hero-copy h1{font-size:38px;margin:12px 0}
+  .hero-copy p{font-size:17px;line-height:1.55}
+  .hero-art{width:310px;height:310px}
+  .hero-art>svg{width:124px;height:124px}
+  .orb.one{width:280px;height:280px}.orb.two{width:205px;height:205px}
+  .ticker{height:56px;gap:30px;font-size:13px}
+  .category-tabs button{font-size:16px}
+  .market-grid{gap:17px;margin-top:20px}
+  .market-card{padding:20px;border-radius:15px}
+  .market-card h3{font-size:19px;margin:15px 0;line-height:1.4}
+  .category-pill{font-size:11px;padding:6px 10px}
+  .market-card .volume{font-size:12px}
+  .market-outcomes{gap:9px}
+  .market-outcome{min-height:46px;gap:10px}
+  .token{width:32px;height:32px;font-size:13px}
+  .outcome-name{font-size:15px}
+  .market-outcome small{font-size:12px}
+  .trade-chip{min-width:72px;padding:8px 11px;font-size:14px}
+  .ask-ai{height:56px;padding:7px 13px;gap:12px;border-radius:11px}
+  .wave-icon{width:35px;height:35px}
+  .wave-icon svg{width:17px;height:17px}
+  .ask-ai strong{font-size:13px}.ask-ai small{font-size:11px}
+  .market-card footer{font-size:12px;margin-top:12px}
+  .market-card footer svg{width:14px}
+  .search-page-field{height:60px;padding:0 18px}
+  .search-page-field input{font-size:17px}
+  .result-count{font-size:14px}
+
+  .detail-toolbar{margin-bottom:22px}
+  .detail-heading{margin-bottom:25px}
+  .detail-heading h1{font-size:35px}
+  .detail-heading .ask-ai{width:260px}
+  .detail-layout{grid-template-columns:minmax(0,1.55fr) minmax(380px,.8fr);gap:20px}
+  .detail-layout>section,.trade-panel{padding:22px;border-radius:15px}
+  .legend-grid>div{font-size:14px}
+  .legend-dot{width:10px;height:10px}
+  .probability-chart{height:320px}
+  .chart-time{font-size:12px}
+  .chart-toolbar strong{font-size:16px}
+  .chart-toolbar button{font-size:13px;padding:9px 11px}
+  .intelligence-preview,.discussion-callout{padding:15px;margin-top:18px}
+  .intelligence-preview span,.intelligence-preview p,.discussion-callout p{font-size:12px}
+  .intelligence-preview strong,.discussion-callout h3{font-size:15px}
+  .panel-title span{font-size:17px}.panel-title small{font-size:12px}
+  .outcome-selector>button{min-height:60px;font-size:15px}
+  .outcome-selector small{font-size:13px}.outcome-selector b{min-width:66px;padding:8px;font-size:14px}
+  .outcome-selector .more-outcomes{font-size:14px}
+  .sports-lines h3{font-size:16px}.sports-lines button{padding:12px;font-size:14px}
+  .rules-section{max-width:900px}.rules-section h2{font-size:22px}.rules-section p{font-size:15px}.rules-section h3{font-size:18px}
+  .rules-section li{font-size:14px}.rules-section time{font-size:12px}
+  .ai-overview{grid-template-columns:300px 1fr;padding:25px}
+  .verdict span,.verdict small{font-size:13px}.verdict strong{font-size:31px}
+  .probability-compare div>span{font-size:12px}.probability-compare div>strong{font-size:25px}
+  .content-card h2{font-size:20px}.content-card h3{font-size:17px}
+  .content-card>p,.content-card li{font-size:15px}
+  .signal-row{grid-template-columns:190px 1fr 38px;padding:16px 0}
+  .signal-row strong{font-size:15px}.signal-row small{font-size:12px}
+
+  .modal{width:min(560px,100%);padding:24px;border-radius:17px}
+  .modal--sm{max-width:440px}.modal--lg{max-width:860px}
+  .modal-header h2{font-size:22px}.modal-subtitle{font-size:14px}
+  .selected-contract{padding:15px}.selected-contract>span{width:42px;height:42px}
+  .selected-contract small{font-size:12px}.selected-contract strong{font-size:15px}
+  .trade-ticket label,.modal label{font-size:14px}
+  .amount-field{height:57px}.amount-field input{font-size:22px}.amount-field span{font-size:14px}
+  .potential-win{padding:15px}.potential-win span{font-size:13px}.potential-win strong{font-size:25px}.potential-win small{font-size:12px}
+  .balance-line,.summary-list>span{font-size:13px}
+  .fine-print{font-size:13px}
+  .setting-row{min-height:80px}.setting-row strong{font-size:15px}.setting-row p{font-size:12px}
+  .toggle{width:46px;height:26px}.toggle span{width:22px;height:22px}.toggle.is-on span{transform:translateX(20px)}
+  .toast{padding:14px 18px;font-size:14px}
+
+  .posts-toolbar{margin-bottom:20px}
+  .toolbar-links a{font-size:13px;padding:9px 11px}
+  .social-layout{grid-template-columns:minmax(0,1fr) 330px;gap:20px}
+  .feed-list{border-radius:15px}
+  .post-card{grid-template-columns:50px 1fr;gap:14px;padding:20px}
+  .post-card>.avatar--md{width:50px;height:50px;font-size:14px}
+  .post-body header strong{font-size:15px}.post-body header span{font-size:13px}
+  .post-copy{font-size:16px;line-height:1.65;margin:11px 0 15px}
+  .post-menu{width:220px}.post-menu button{font-size:13px;padding:11px}
+  .post-attachment{padding:15px;border-radius:12px}
+  .market-attachment small,.position-card small,.portfolio-card small,.ai-heading small{font-size:11px}
+  .market-attachment strong{font-size:14px}.market-attachment div>span{font-size:12px}
+  .position-metrics span{font-size:11px;padding:10px}.position-metrics b{font-size:13px}
+  .portfolio-card>div{font-size:13px;padding:10px 0}.ai-heading>b{font-size:15px}.ai-attachment p{font-size:12px}
+  .quoted p{font-size:13px}.social-actions{max-width:560px;margin-top:10px}
+  .social-actions button{font-size:13px;padding:6px}.social-actions svg{width:18px;height:18px}
+  .suggested h3{font-size:17px}.suggested>div{padding:13px 0}.suggested span strong{font-size:13px}.suggested span small{font-size:11px}
+  .suggested .button{min-height:37px;font-size:12px}.principles h3{font-size:15px}.principles p{font-size:12px!important}
+  .composer-card textarea{min-height:230px;font-size:19px}.character-count{font-size:12px}
+  .attachment-tools button{font-size:12px;padding:10px}.selected-attachment small{font-size:12px}
+  .reply-list h2{font-size:20px}.reply-list article p{font-size:14px}.reply-list article span,.reply-list article button{font-size:12px}
+  .user-result span small{font-size:12px}.market-result strong{font-size:15px}.market-result small{font-size:12px}
+  .leaderboard>header{font-size:12px}.leaderboard>div{font-size:14px;padding:14px 18px}.leaderboard a span small{font-size:11px}
+  .profile-cover{height:180px}.profile-main h1{font-size:29px}.profile-main>span{font-size:14px}.profile-main>p{font-size:16px}
+  .specialties span{font-size:12px;padding:6px 10px}.follow-stats a{font-size:14px}
+  .performance-grid>div{padding:18px}.performance-grid span,.performance-grid small{font-size:12px}.performance-grid strong{font-size:25px}
+  .portfolio-overview span{font-size:12px}.portfolio-overview strong{font-size:26px}.portfolio-position{font-size:14px;padding:15px 0}
+
+  .asset-balance-card{min-height:220px;padding:32px}.asset-balance-card span{font-size:15px}.asset-balance-card strong{font-size:48px}.asset-balance-card small{font-size:13px}
+  .assets-layout{grid-template-columns:1fr 350px;gap:18px}
+  .asset-link-card{padding:18px}.asset-link-card strong{font-size:16px}.asset-link-card small{font-size:12px}
+  .asset-choices button{height:66px;font-size:15px}.stablecoin{width:34px;height:34px}
+  .deposit-address>span{font-size:17px}.deposit-address>small{font-size:13px}.deposit-address code{font-size:14px;padding:14px}
+  .capability-note span strong{font-size:13px}.capability-note span small{font-size:11px}
+  .scanner-card{min-height:520px}.camera-preview{min-height:520px}.camera-message h3{font-size:20px}.camera-message p{font-size:13px}.manual-address h2{font-size:21px}
+  .settings-grid{gap:18px}.settings-card>header h2{font-size:18px}.choice-setting legend{font-size:14px}
+  .settings-card>label,.account-section>label{font-size:14px;padding:17px 0}.settings-link,.referral{height:62px;font-size:14px}.settings-link span{font-size:12px}
+  .trusted code{font-size:12px}.wallet-provider{height:66px;font-size:15px}
+  .profile-summary{padding:21px}.profile-summary h2{font-size:22px}.profile-summary p{font-size:13px}.verification{font-size:11px}
+  .verification-banner{padding:20px}.verification-banner strong{font-size:16px}.verification-banner small{font-size:12px}
+  .account-sections{gap:18px}.menu-row{height:65px}.menu-row>strong{font-size:14px}.menu-row>small{font-size:12px}
+  .account-section>label>small{font-size:11px}.referral strong{font-size:14px}.referral b{font-size:14px}
+  .device-item span small{font-size:12px}.device-item b{font-size:12px}
+  .notification-group h2{font-size:13px}.notification-row{min-height:94px;padding:17px}.notification-icon{width:46px;height:46px}
+  .notification-row strong{font-size:15px}.notification-row p{font-size:13px}.notification-row time{font-size:11px}
+
+  .auth-card{width:min(480px,100%)}.auth-card>h2{font-size:36px}.auth-card>p{font-size:16px}
+  .auth-form label{font-size:15px}.auth-form input{font-size:16px;min-height:50px}.auth-form .button{min-height:54px}
+  .segmented button{height:47px;font-size:15px}.passkey{height:52px;font-size:15px}.auth-switch{font-size:15px}
+}
+
+@media (min-width:1600px){
+  .workspace{grid-template-columns:minmax(0,1fr) 360px}
+  .page{max-width:1460px}
+}
