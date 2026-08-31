@@ -19,6 +19,9 @@
         "backgroundColor": "#0D0E10"
       }
     },
-    "plugins": [["expo-local-authentication", {"faceIDPermission": "Use Face ID to securely unlock your PredictAI account."}]]
+    "plugins": [
+      ["expo-local-authentication", {"faceIDPermission": "Use Face ID to securely unlock your PredictAI account."}],
+      ["expo-camera", {"cameraPermission": "Allow PredictAI to scan wallet QR codes for withdrawals.", "microphonePermission": false, "recordAudioAndroid": false}]
+    ]
   }
 }
