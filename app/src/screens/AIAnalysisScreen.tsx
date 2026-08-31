@@ -26,7 +26,7 @@ export function AIAnalysisScreen({ market, onBack }: { market: Market; onBack: (
   }, [attempt, market]);
 
   return <View style={styles.root}>
-    <View style={styles.header}><Pressable accessibilityLabel="Back" hitSlop={10} onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={25} /></Pressable><View style={styles.headerBrand}><Ionicons color={colors.accent} name="sparkles-outline" size={15} /><Text allowFontScaling={false} style={styles.headerTitle}>PredictAI Intelligence</Text></View><View style={styles.headerSpacer} /></View>
+    <View style={styles.header}><Pressable accessibilityLabel="Back" hitSlop={10} onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={25} /></Pressable><Text allowFontScaling={false} style={styles.headerTitle}>PredictAI Intelligence</Text><View style={styles.headerSpacer} /></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
       <View style={styles.marketTag}><Text allowFontScaling={false} style={styles.marketTagText}>{market.category} · {market.subcategory}</Text></View>
       <Text allowFontScaling={false} style={styles.marketTitle}>{market.title}</Text>
@@ -50,7 +50,6 @@ export function AIAnalysisScreen({ market, onBack }: { market: Market; onBack: (
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.background },
   header: { height: 52, paddingHorizontal: 16, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: colors.border },
-  headerBrand: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   headerTitle: { color: colors.text, fontSize: 15, fontWeight: '600' },
   headerSpacer: { width: 25 },
   content: { padding: 16, paddingBottom: 45 },
