@@ -57,7 +57,6 @@ export function AssetsHome() {
   return (
     <div className="page">
       <PageHeader
-        eyebrow="Your wallet"
         title="Assets"
         description="Manage prediction funds, public performance, and transaction preferences."
         action={

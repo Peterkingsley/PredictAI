@@ -50,7 +50,6 @@ export function PostsFeedPage() {
   return (
     <div className="page posts-page">
       <PageHeader
-        eyebrow="Community intelligence"
         title="Posts"
         description="Follow transparent thinking, positions, and prediction performance."
         action={
