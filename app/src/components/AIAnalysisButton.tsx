@@ -9,7 +9,7 @@ export function AIAnalysisButton({ onPress }: { onPress: () => void }) {
     onPress();
   };
 
-  return <Pressable accessibilityLabel="Ask PredictAI to analyze this market" onPress={openAnalysis} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Ionicons color={colors.accent} name="sparkles-outline" size={15} /><Text allowFontScaling={false} style={styles.label}>Ask PredictAI</Text><Ionicons color={colors.accent} name="arrow-forward" size={14} /></Pressable>;
+  return <Pressable accessibilityLabel="Ask PredictAI to research this market" onPress={openAnalysis} style={({ pressed }) => [styles.button, pressed && styles.pressed]}><Ionicons color={colors.accent} name="search-circle-outline" size={17} /><Text allowFontScaling={false} style={styles.label}>Ask PredictAI</Text><Ionicons color={colors.accent} name="arrow-forward" size={14} /></Pressable>;
 }
 
 const styles = StyleSheet.create({
