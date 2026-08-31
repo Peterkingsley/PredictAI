@@ -214,3 +214,89 @@
   .workspace{grid-template-columns:minmax(0,1fr) 360px}
   .page{max-width:1460px}
 }
+
+/* Final scale tuning: retain X-like readability without oversized/bold UI. */
+@media (min-width:1121px){
+  :root{--sidebar-width:264px;--topbar:72px}
+  body{font-size:15px}
+  .app-shell strong,.app-shell b{font-weight:600}
+  .sidebar-brand .brand-mark{width:38px;height:38px;font-size:19px}
+  .sidebar-brand strong{font-size:18px;font-weight:700}
+  .nav-item{height:51px;font-size:15px;font-weight:500}
+  .nav-item.active{font-weight:600}
+  .nav-item svg{width:20px;height:20px}
+  .topbar{grid-template-columns:205px minmax(380px,600px) 1fr}
+  .topbar-title strong{font-size:15px}
+  .global-search{height:43px}.global-search input{font-size:14px}
+  .profile-button{font-size:13px}
+  .workspace{grid-template-columns:minmax(0,1fr) 325px}
+  .page{padding:31px 31px 76px}
+  .page-header h1{font-size:31px}.page-header p{font-size:15px}
+  .eyebrow{font-size:11px}
+  .button{min-height:43px;padding:0 17px;font-size:14px;font-weight:600}
+  .section-heading h2{font-size:20px}.section-heading p{font-size:13px}
+  .tabs>button{font-size:14px;padding:12px 3px}
+  .chip-row button,.quick-amounts button{font-size:12px;padding:8px 13px}
+  .rail-card h3{font-size:15px}.rail-card>button{font-size:13px;padding:13px 0}
+  .rail-card small,.rail-card p,.rail-note p{font-size:11px}
+  .rail-card.compact strong{font-size:13px}.pulse{font-size:13px}
+
+  .wallet-strip{padding:16px 19px}.wallet-strip span{font-size:12px}
+  .wallet-strip strong{font-size:23px}.wallet-strip .pnl-block strong{font-size:15px}
+  .hero-banner{height:305px;padding:40px 44px}
+  .hero-copy>span{font-size:11px}.hero-copy h1{font-size:34px;font-weight:700}
+  .hero-copy p{font-size:15px}.hero-art{width:285px;height:285px}
+  .hero-art>svg{width:112px;height:112px}.orb.one{width:255px;height:255px}.orb.two{width:188px;height:188px}
+  .ticker{height:52px;font-size:12px}.category-tabs button{font-size:15px}
+  .market-card{padding:18px}.market-card h3{font-size:17px;font-weight:600}
+  .category-pill{font-size:10px}.market-card .volume{font-size:11px}
+  .market-outcome{min-height:43px}.token{width:30px;height:30px;font-size:12px}
+  .outcome-name{font-size:14px}.market-outcome small{font-size:11px}
+  .trade-chip{font-size:13px;min-width:68px}.ask-ai{height:52px}
+  .ask-ai strong{font-size:12px}.ask-ai small{font-size:10px}.market-card footer{font-size:11px}
+
+  .detail-heading h1{font-size:32px;font-weight:700}.detail-layout{grid-template-columns:minmax(0,1.55fr) minmax(360px,.8fr)}
+  .legend-grid>div{font-size:13px}.probability-chart{height:295px}.chart-time{font-size:11px}
+  .chart-toolbar strong{font-size:15px}.chart-toolbar button{font-size:12px}
+  .intelligence-preview span,.intelligence-preview p,.discussion-callout p{font-size:11px}
+  .intelligence-preview strong,.discussion-callout h3{font-size:14px}
+  .panel-title span{font-size:16px}.panel-title small{font-size:11px}
+  .outcome-selector>button{min-height:56px;font-size:14px}.outcome-selector small{font-size:12px}
+  .outcome-selector b{font-size:13px}.rules-section h2{font-size:20px}.rules-section p{font-size:14px}
+  .content-card h2{font-size:18px}.content-card h3{font-size:16px}.content-card>p,.content-card li{font-size:14px}
+  .signal-row strong{font-size:14px}.signal-row small{font-size:11px}
+
+  .modal-header h2{font-size:20px}.modal-subtitle{font-size:13px}
+  .trade-ticket label,.modal label{font-size:13px}.amount-field{height:53px}.amount-field input{font-size:20px}
+  .potential-win strong{font-size:23px}.potential-win span,.balance-line,.summary-list>span{font-size:12px}
+  .fine-print{font-size:12px}.setting-row{min-height:74px}.setting-row strong{font-size:14px}.setting-row p{font-size:11px}
+
+  .social-layout{grid-template-columns:minmax(0,1fr) 315px}
+  .post-card{grid-template-columns:46px 1fr;padding:18px;gap:12px}
+  .post-card>.avatar--md{width:46px;height:46px;font-size:13px}
+  .post-body header strong{font-size:14px}.post-body header span{font-size:12px}
+  .post-copy{font-size:15px}.market-attachment strong{font-size:13px}.market-attachment div>span{font-size:11px}
+  .position-metrics b{font-size:12px}.portfolio-card>div{font-size:12px}.ai-attachment p{font-size:11px}
+  .social-actions button{font-size:12px}.suggested h3{font-size:16px}.suggested span strong{font-size:12px}
+  .composer-card textarea{font-size:17px}.user-result span small{font-size:11px}
+  .leaderboard>div{font-size:13px}.profile-main h1{font-size:27px}.profile-main>p{font-size:15px}
+  .performance-grid strong{font-size:23px}.portfolio-overview strong{font-size:24px}.portfolio-position{font-size:13px}
+
+  .asset-balance-card{min-height:205px;padding:29px}.asset-balance-card span{font-size:14px}
+  .asset-balance-card strong{font-size:43px}.asset-balance-card small{font-size:12px}
+  .assets-layout{grid-template-columns:1fr 330px}.asset-link-card strong{font-size:15px}.asset-link-card small{font-size:11px}
+  .asset-choices button{height:61px;font-size:14px}.deposit-address>span{font-size:16px}.deposit-address code{font-size:13px}
+  .scanner-card,.camera-preview{min-height:480px}.camera-message h3{font-size:18px}.camera-message p{font-size:12px}
+  .settings-card>header h2{font-size:17px}.choice-setting legend{font-size:13px}
+  .settings-card>label,.account-section>label{font-size:13px}.settings-link,.referral{height:58px;font-size:13px}
+  .profile-summary h2{font-size:20px}.verification-banner strong{font-size:15px}.menu-row{height:60px}.menu-row>strong{font-size:13px}
+  .notification-row{min-height:88px;padding:15px}.notification-row strong{font-size:14px}.notification-row p{font-size:12px}
+
+  .auth-card>h2{font-size:33px}.auth-card>p{font-size:15px}
+  .auth-form label{font-size:14px}.auth-form input{font-size:15px;min-height:47px}
+  .auth-form .button{min-height:50px}.segmented button{height:44px;font-size:14px}.passkey{height:49px;font-size:14px}
+}
+
+@media (min-width:1600px){
+  .workspace{grid-template-columns:minmax(0,1fr) 340px}
+}
