@@ -13,7 +13,7 @@ const currencies: { code: BalanceCurrency; symbol: string; zero: string }[] = [
 
 export function HomeWalletHeader({ hasUnreadNotifications, onDeposit, onNotifications, onProfile, onScan, onSearch }: { hasUnreadNotifications: boolean; onDeposit: () => void; onNotifications: () => void; onProfile: () => void; onScan: () => void; onSearch: () => void }) {
   const [hidden, setHidden] = useState(false);
-  const [currency, setCurrency] = useState<BalanceCurrency>('BTC');
+  const [currency, setCurrency] = useState<BalanceCurrency>('USD');
   const [pickerOpen, setPickerOpen] = useState(false);
   const selected = currencies.find((item) => item.code === currency) ?? currencies[0]!;
 
