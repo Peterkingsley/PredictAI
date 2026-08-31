@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { ProfilePhotoAvatar } from '../components/ProfilePhotoAvatar';
 import { PrimaryButton } from '../components/PrimaryButton';
 import { colors } from '../theme/colors';
 
@@ -54,7 +55,7 @@ export function ProfileScreen({ email: initialEmail, onBack, onOpenPublicProfile
   return <View style={styles.root}>
     <View style={styles.header}><Pressable hitSlop={10} onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={25} /></Pressable><Text allowFontScaling={false} style={styles.headerTitle}>Account & Profile</Text><View style={styles.headerSpacer} /></View>
     <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.profileCard}><View style={styles.avatar}><Text allowFontScaling={false} style={styles.avatarText}>{initials}</Text></View><View style={styles.profileCopy}><Text allowFontScaling={false} style={styles.name}>{name}</Text><Text allowFontScaling={false} style={styles.email}>{email}</Text><View style={[styles.status, verification === 'In review' && styles.statusReview]}><Text allowFontScaling={false} style={[styles.statusText, verification === 'In review' && styles.statusReviewText]}>{verification}</Text></View></View><Pressable onPress={() => setPanel('edit')} style={styles.editButton}><Text allowFontScaling={false} style={styles.editText}>Edit</Text></Pressable></View>
+      <View style={styles.profileCard}><ProfilePhotoAvatar editable initials={initials} size={54}/><View style={styles.profileCopy}><Text allowFontScaling={false} style={styles.name}>{name}</Text><Text allowFontScaling={false} style={styles.email}>{email}</Text><View style={[styles.status, verification === 'In review' && styles.statusReview]}><Text allowFontScaling={false} style={[styles.statusText, verification === 'In review' && styles.statusReviewText]}>{verification}</Text></View></View><Pressable onPress={() => setPanel('edit')} style={styles.editButton}><Text allowFontScaling={false} style={styles.editText}>Edit</Text></Pressable></View>
 
       <Pressable onPress={() => setPanel('verification')} style={({ pressed }) => [styles.verificationCard, pressed && styles.pressed]}><View style={styles.verificationIcon}><Ionicons color={colors.accent} name="shield-checkmark-outline" size={24} /></View><View style={styles.verificationCopy}><Text allowFontScaling={false} style={styles.verificationTitle}>Identity verification</Text><Text allowFontScaling={false} style={styles.verificationText}>{verification === 'Not verified' ? 'Verify your identity to unlock higher account limits.' : 'Your documents are being reviewed.'}</Text></View><Ionicons color={colors.textMuted} name="chevron-forward" size={18} /></Pressable>
 

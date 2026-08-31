@@ -33,7 +33,13 @@
           "recordAudioAndroid": false
         }
       ],
-      "expo-font"
+      "expo-font",
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow PredictAI to choose a profile photo from your library."
+        }
+      ]
     ]
   }
 }

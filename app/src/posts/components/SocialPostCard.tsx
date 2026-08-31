@@ -38,7 +38,7 @@ export function SocialPostCard(props: Props) {
   const toggleFollow = async () => { local.author.isFollowing ? await unfollowUser(local.author.id) : await followUser(local.author.id); setLocal({ ...local, author: { ...local.author } }); onChanged(); };
   return <View style={styles.card}>
     <View style={styles.header}>
-      <Pressable onPress={() => onOpenProfile(local.author.id)}><SocialAvatar initials={local.author.initials} size={38}/></Pressable>
+      <Pressable onPress={() => onOpenProfile(local.author.id)}><SocialAvatar initials={local.author.initials} isCurrentUser={local.author.isCurrentUser} size={38}/></Pressable>
       <Pressable onPress={() => onOpenProfile(local.author.id)} style={styles.author}><Text style={styles.name}>{local.author.displayName}</Text><Text style={styles.meta}>@{local.author.username} · {formatSocialTime(local.createdAt)}</Text></Pressable>
       {showFollow && !local.author.isFollowing && !local.author.isCurrentUser ? <Pressable onPress={() => void toggleFollow()} style={styles.follow}><Text style={styles.followText}>Follow</Text></Pressable> : null}
       <Pressable accessibilityLabel="Post options" hitSlop={10} onPress={() => setOptionsOpen(true)} style={styles.options}><Ionicons color={colors.textMuted} name="ellipsis-horizontal" size={20}/></Pressable>

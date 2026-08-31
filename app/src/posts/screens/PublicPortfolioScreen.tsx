@@ -19,7 +19,7 @@ export function PublicPortfolioScreen({ onBack, userId }: { onBack: () => void; 
   return <View style={styles.root}>
     <SocialScreenHeader onBack={onBack} title="Public portfolio"/>
     {allowed && portfolio ? <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.identity}><SocialAvatar initials={user.initials} size={48}/><View><Text style={styles.name}>{user.displayName}</Text><Text style={styles.handle}>@{user.username} · shared portfolio</Text></View></View>
+      <View style={styles.identity}><SocialAvatar initials={user.initials} isCurrentUser={user.isCurrentUser} size={48}/><View><Text style={styles.name}>{user.displayName}</Text><Text style={styles.handle}>@{user.username} · shared portfolio</Text></View></View>
       <PublicPortfolioCard portfolio={{ ...portfolio, positions: holdingsVisible ? portfolio.positions : [], showTotalValue: portfolio.showTotalValue && (!user.isCurrentUser || privacy.showTotalPortfolioValue) }}/>
       <Text style={styles.heading}>Public positions</Text>
       {holdingsVisible ? portfolio.positions.map((position) => <PublicPositionCard key={position.id} position={position}/>) : <Text style={styles.muted}>Holdings are private.</Text>}

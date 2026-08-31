@@ -77,7 +77,7 @@ export function TraderProfileScreen(props: Props) {
   const profileHeader = <>
     <View style={styles.hero}>
       <View style={styles.identityRow}>
-        <SocialAvatar initials={user.initials} size={72}/>
+        <SocialAvatar initials={user.initials} isCurrentUser={user.isCurrentUser} size={72}/>
         <View style={styles.identity}>
           <Text numberOfLines={1} style={styles.name}>{user.displayName}</Text>
           <Text style={styles.handle}>@{user.username}</Text>
