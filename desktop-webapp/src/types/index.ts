@@ -1,0 +1,11 @@
+export type Category = 'Recommend' | 'Sports' | 'Crypto';
+export type Outcome = { label: string; probability: number; odds: string; color?: string; tradeAction?: 'Buy' | 'Sell' };
+export type Market = { id: string; title: string; category: Category; subcategory: string; volume: string; more: number; outcomes: Outcome[]; rules: string };
+export type FeedKind = 'for_you' | 'following' | 'trending';
+export type User = { id: string; displayName: string; username: string; initials: string; bio: string; specialization: string[]; followers: number; following: number; accuracy: number; performance: number; consistency: number; contrarian: number; isFollowing: boolean; isCurrent?: boolean; portfolioPublic?: boolean };
+export type Position = { symbol: string; name: string; entry: number; current: number; performance: number; allocation: number };
+export type Post = { id: string; authorId: string; content: string; createdAt: string; marketId?: string; position?: Position; portfolio?: Position[]; ai?: { probability: number; marketProbability: number; edge: number; confidence: string; summary: string }; quotePostId?: string; likes: number; replies: number; reposts: number; liked: boolean; saved: boolean; reposted: boolean };
+export type Network = 'Ethereum' | 'Polygon' | 'Arbitrum' | 'Base';
+export type WalletSettings = { requireBiometrics: boolean; withdrawalConfirmation: boolean; autoLock: '1 min' | '5 min' | '15 min' | 'Never'; trustedAddresses: string[]; defaultNetwork: Network; withdrawalLimit: string; feeSpeed: 'Standard' | 'Fast'; transactionNotifications: boolean; currency: 'USD' | 'NGN' | 'USDC'; hideBalances: boolean; assetSort: 'Balance' | 'Name' | 'Performance'; compactView: boolean; walletMode: 'Prediction' | 'Trading'; supportedAssets: Record<'USDC' | 'USDT', boolean>; connectedWallet: string | null };
+export type PrivacySettings = { publicProfile: boolean; showPortfolioPerformance: boolean; showTotalPortfolioValue: boolean; showHoldings: boolean; showPositionHistory: boolean; showLikedPosts: boolean; showFollowingList: boolean; allowLeaderboards: boolean; allowSearch: boolean };
+export type Notification = { id: string; title: string; message: string; time: string; group: 'Today' | 'Earlier'; kind: 'market' | 'wallet' | 'social' | 'security'; read: boolean };
