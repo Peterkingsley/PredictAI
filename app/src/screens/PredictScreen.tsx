@@ -20,7 +20,7 @@ import type { ScannedWalletAddress } from '../utils/walletAddress';
 const categories = ['Recommend', 'All', 'Sports', 'Crypto'] as const;
 const subcategories = { Recommend: ['HOT', 'Favorite'], All: ['HOT', 'New'], Sports: ['Soccer', 'NBA', 'NFL', 'EPL'], Crypto: ['Target Price', 'Tiered', 'Airdrops'] } as const;
 
-export function PredictScreen({ email, onAskAI, onMarket, onSignOut }: { email: string; onAskAI: (market: Market) => void; onMarket: (market: Market) => void; onSignOut: () => void }) {
+export function PredictScreen({ email, onAskAI, onMarket, onOpenPublicProfile, onSignOut }: { email: string; onAskAI: (market: Market) => void; onMarket: (market: Market) => void; onOpenPublicProfile: () => void; onSignOut: () => void }) {
   const [category, setCategory] = useState<(typeof categories)[number]>('Recommend');
   const [sub, setSub] = useState('HOT');
   const [allMarket, setAllMarket] = useState<Market | null>(null);
@@ -41,7 +41,7 @@ export function PredictScreen({ email, onAskAI, onMarket, onSignOut }: { email: 
   };
 
   if (depositing) return <DepositScreen onBack={() => setDepositing(false)} />;
-  if (profileOpen) return <ProfileScreen email={email} onBack={() => setProfileOpen(false)} onSignOut={onSignOut} />;
+  if (profileOpen) return <ProfileScreen email={email} onBack={() => setProfileOpen(false)} onOpenPublicProfile={onOpenPublicProfile} onSignOut={onSignOut} />;
   if (notificationsOpen) return <NotificationsScreen onBack={() => setNotificationsOpen(false)} onMarkAllRead={() => setReadNotificationIds(appNotifications.map((notification) => notification.id))} onRead={(id) => setReadNotificationIds((current) => current.includes(id) ? current : [...current, id])} readIds={readNotificationIds} />;
   if (searchOpen) return <View style={styles.root}><EventSearchScreen onAskAI={(market) => { setSearchOpen(false); onAskAI(market); }} onBack={() => setSearchOpen(false)} onMarket={(market) => { setSearchOpen(false); onMarket(market); }} onPredict={predict} /><PredictionOrderModal order={order} onClose={() => setOrder(null)} /></View>;
   if (walletScannerOpen) return <WalletAddressScannerScreen onBack={() => setWalletScannerOpen(false)} onManual={() => { setScannedWallet(null); setWalletScannerOpen(false); setWalletWithdrawalOpen(true); }} onUseAddress={(result) => { setScannedWallet(result); setWalletScannerOpen(false); setWalletWithdrawalOpen(true); }} />;

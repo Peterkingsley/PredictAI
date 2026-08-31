@@ -15,7 +15,7 @@ const announcements = [
   {
     eyebrow: 'PREDICTAI UPDATE',
     title: 'Smarter predictions are here',
-    description: 'Explore live markets and follow probability changes in real time.',
+    description: 'Browse live markets and follow probability changes in real time.',
     icon: 'sparkles' as const,
     background: '#162B24',
     accent: '#9BE116',

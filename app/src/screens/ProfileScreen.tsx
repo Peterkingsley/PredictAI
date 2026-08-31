@@ -32,7 +32,7 @@ function Choices<T extends string>({ label, onChange, options, value }: { label:
   return <View style={styles.choiceBlock}><Text allowFontScaling={false} style={styles.menuLabel}>{label}</Text><View style={styles.choices}>{options.map((option) => <Pressable key={option} onPress={() => onChange(option)} style={[styles.choice, value === option && styles.choiceSelected]}><Text allowFontScaling={false} style={[styles.choiceText, value === option && styles.choiceTextSelected]}>{option}</Text></Pressable>)}</View></View>;
 }
 
-export function ProfileScreen({ email: initialEmail, onBack, onSignOut }: { email: string; onBack: () => void; onSignOut: () => void }) {
+export function ProfileScreen({ email: initialEmail, onBack, onOpenPublicProfile, onSignOut }: { email: string; onBack: () => void; onOpenPublicProfile: () => void; onSignOut: () => void }) {
   const [panel, setPanel] = useState<Panel>(null);
   const [name, setName] = useState('Peter Kingsley');
   const [email, setEmail] = useState(initialEmail || 'peter@example.com');
@@ -57,6 +57,10 @@ export function ProfileScreen({ email: initialEmail, onBack, onSignOut }: { emai
       <View style={styles.profileCard}><View style={styles.avatar}><Text allowFontScaling={false} style={styles.avatarText}>{initials}</Text></View><View style={styles.profileCopy}><Text allowFontScaling={false} style={styles.name}>{name}</Text><Text allowFontScaling={false} style={styles.email}>{email}</Text><View style={[styles.status, verification === 'In review' && styles.statusReview]}><Text allowFontScaling={false} style={[styles.statusText, verification === 'In review' && styles.statusReviewText]}>{verification}</Text></View></View><Pressable onPress={() => setPanel('edit')} style={styles.editButton}><Text allowFontScaling={false} style={styles.editText}>Edit</Text></Pressable></View>
 
       <Pressable onPress={() => setPanel('verification')} style={({ pressed }) => [styles.verificationCard, pressed && styles.pressed]}><View style={styles.verificationIcon}><Ionicons color={colors.accent} name="shield-checkmark-outline" size={24} /></View><View style={styles.verificationCopy}><Text allowFontScaling={false} style={styles.verificationTitle}>Identity verification</Text><Text allowFontScaling={false} style={styles.verificationText}>{verification === 'Not verified' ? 'Verify your identity to unlock higher account limits.' : 'Your documents are being reviewed.'}</Text></View><Ionicons color={colors.textMuted} name="chevron-forward" size={18} /></Pressable>
+
+      <Section title="Community">
+        <MenuRow detail="Posts, performance & privacy" icon="people-outline" label="Public profile" onPress={onOpenPublicProfile} />
+      </Section>
 
       <Section title="Account security">
         <MenuRow icon="key-outline" label="Change password or PIN" onPress={() => setPanel('password')} />

@@ -9,6 +9,7 @@ import { colors, marketOutcomeColors } from '../theme/colors';
 import { getAIAnalysisPreview } from '../services/aiAnalysis';
 import type { Market } from '../types/market';
 import { CryptoMarketDetailScreen } from './CryptoMarketDetailScreen';
+import { MarketDiscussionCard } from '../posts/components/MarketDiscussionCard';
 
 function PredictionChoice({ label, value, negative, selected, onSelect }: { label: string; value: string; negative?: boolean; selected: boolean; onSelect: () => void }) {
   return <Pressable onPress={onSelect} style={[styles.choice, negative && styles.negative, selected && styles.choiceSelected]}><Text allowFontScaling={false} numberOfLines={1} style={[styles.choiceText, semanticStyles.flexLabel, negative && styles.negativeText]}>{label}</Text><Text allowFontScaling={false} style={[styles.choiceText, negative && styles.negativeText]}>{value}</Text></Pressable>;
@@ -18,7 +19,7 @@ function OutcomeChoice({ label, odds, value, color, sell, selected, onSelect }: 
   return <Pressable onPress={onSelect} style={[semanticStyles.outcomeChoice, selected && semanticStyles.outcomeSelected]}><View style={[semanticStyles.outcomeDot, { backgroundColor: color }]} /><Text allowFontScaling={false} numberOfLines={2} style={semanticStyles.outcomeLabel}>{label}</Text><Text allowFontScaling={false} style={semanticStyles.outcomeOdds}>{odds}</Text><View style={[semanticStyles.outcomeProbability, sell && semanticStyles.sellAction]}><Text allowFontScaling={false} style={[semanticStyles.outcomeProbabilityText, sell && semanticStyles.sellActionText]}>{value}</Text></View></Pressable>;
 }
 
-export function MarketDetailScreen({ market, onAskAI, onBack }: { market: Market; onAskAI: () => void; onBack: () => void }) {
+export function MarketDetailScreen({ market, onAskAI, onBack, onOpenPosts }: { market: Market; onAskAI: () => void; onBack: () => void; onOpenPosts: () => void }) {
   const [selectedPrediction, setSelectedPrediction] = useState('');
   const [order, setOrder] = useState<PredictionOrder | null>(null);
   const [alertsOpen, setAlertsOpen] = useState(false);
@@ -29,7 +30,7 @@ export function MarketDetailScreen({ market, onAskAI, onBack }: { market: Market
   const sports = market.category === 'Sports';
   const crypto = market.category === 'Crypto';
 
-  if (crypto) return <CryptoMarketDetailScreen market={market} onAskAI={onAskAI} onBack={onBack} />;
+  if (crypto) return <CryptoMarketDetailScreen market={market} onAskAI={onAskAI} onBack={onBack} onOpenPosts={onOpenPosts} />;
 
   return <View style={styles.root}>
     <View style={styles.header}><Pressable onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={25} /></Pressable><Pressable accessibilityLabel="Event alerts" hitSlop={10} onPress={() => setAlertsOpen(true)}><Ionicons color={colors.text} name="settings-outline" size={23} /></Pressable></View>
@@ -39,6 +40,7 @@ export function MarketDetailScreen({ market, onAskAI, onBack }: { market: Market
       <ProbabilityChart outcomes={market.outcomes} />
       <View style={styles.volumeRow}><Text allowFontScaling={false} style={styles.volume}>{market.volume} <Text style={styles.volumeLabel}>Volume</Text></Text><View style={styles.ranges}>{['1D', '1W', '1M', 'All'].map((range) => <Text allowFontScaling={false} key={range} style={[styles.range, range === '1D' && styles.rangeActive]}>{range}</Text>)}</View></View>
       <AIEdgeCard analysis={getAIAnalysisPreview(market)} onPress={onAskAI} />
+      <MarketDiscussionCard marketId={market.id} onOpen={onOpenPosts}/>
       {sports ? <><View style={styles.sectionTabs}><Text style={styles.sectionActive}>Game Lines</Text><Text style={styles.sectionTab}>Exact Score</Text><Text style={styles.sectionTab}>Halves</Text></View><View style={styles.lineCard}><Text allowFontScaling={false} style={styles.lineTitle}>Moneyline</Text><Text allowFontScaling={false} style={styles.lineMeta}>{market.volume} Volume</Text><View style={styles.choiceRow}>{market.outcomes.slice(0, 3).map((outcome, index) => <PredictionChoice key={outcome.label} label={outcome.label} value={`${outcome.probability}%`} negative={index === 2} selected={selectedPrediction === `moneyline-${index}`} onSelect={() => select(`moneyline-${index}`, outcome.label, outcome.odds)} />)}</View></View></> : <View style={semanticStyles.outcomesSection}><Text allowFontScaling={false} style={styles.lineTitle}>Choose an outcome</Text><Text allowFontScaling={false} style={styles.lineMeta}>{market.volume} Volume</Text>{market.outcomes.map((outcome, index) => <OutcomeChoice key={outcome.label} label={outcome.label} odds={outcome.odds} value={`${outcome.probability}%`} color={outcome.color ?? marketOutcomeColors[index] ?? colors.accent} selected={selectedPrediction === `outcome-${index}`} onSelect={() => select(`outcome-${index}`, outcome.label, outcome.odds)} />)}</View>}
       {sports ? <>
         <View style={styles.expandHeading}><Text allowFontScaling={false} style={styles.lineTitle}>Spreads</Text><Ionicons color={colors.text} name="chevron-up" size={19} /></View>

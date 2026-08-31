@@ -8,10 +8,11 @@ import { PredictionOrderModal, type PredictionOrder } from '../components/Predic
 import { colors, marketOutcomeColors } from '../theme/colors';
 import { getAIAnalysisPreview } from '../services/aiAnalysis';
 import type { Market } from '../types/market';
+import { MarketDiscussionCard } from '../posts/components/MarketDiscussionCard';
 
 const ranges = ['1D', '1W', '1M', 'All'] as const;
 
-export function CryptoMarketDetailScreen({ market, onAskAI, onBack }: { market: Market; onAskAI: () => void; onBack: () => void }) {
+export function CryptoMarketDetailScreen({ market, onAskAI, onBack, onOpenPosts }: { market: Market; onAskAI: () => void; onBack: () => void; onOpenPosts: () => void }) {
   const [expanded, setExpanded] = useState(false);
   const [selectedOutcome, setSelectedOutcome] = useState('');
   const [order, setOrder] = useState<PredictionOrder | null>(null);
@@ -41,6 +42,7 @@ export function CryptoMarketDetailScreen({ market, onAskAI, onBack }: { market: 
         <View style={styles.ranges}>{ranges.map((range) => <Text allowFontScaling={false} key={range} style={[styles.range, range === '1D' && styles.rangeActive]}>{range}</Text>)}<Ionicons color={colors.textMuted} name="list-outline" size={21} /></View>
       </View>
       <View style={styles.aiCard}><AIEdgeCard analysis={getAIAnalysisPreview(market)} onPress={onAskAI} /></View>
+      <MarketDiscussionCard marketId={market.id} onOpen={onOpenPosts}/>
       <View style={styles.outcomes}>
         {(expanded ? market.outcomes : market.outcomes.slice(0, 3)).map((outcome) => <Pressable key={outcome.label} onPress={() => selectOutcome(outcome)} style={[styles.outcomeRow, selectedOutcome === outcome.label && styles.outcomeSelected]}>
           <View style={styles.coin}><Text allowFontScaling={false} style={styles.coinText}>₿</Text></View>

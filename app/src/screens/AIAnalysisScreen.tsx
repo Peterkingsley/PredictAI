@@ -9,7 +9,7 @@ import { colors } from '../theme/colors';
 import type { AIAnalysis } from '../types/aiAnalysis';
 import type { Market } from '../types/market';
 
-export function AIAnalysisScreen({ market, onBack }: { market: Market; onBack: () => void }) {
+export function AIAnalysisScreen({ market, onBack, onShareToPosts }: { market: Market; onBack: () => void; onShareToPosts?: (analysis: AIAnalysis) => void }) {
   const [analysis, setAnalysis] = useState<AIAnalysis | null>(null);
   const [completedSteps, setCompletedSteps] = useState(0);
   const [failed, setFailed] = useState(false);
@@ -41,6 +41,7 @@ export function AIAnalysisScreen({ market, onBack }: { market: Market; onBack: (
         <View style={styles.section}><Text allowFontScaling={false} style={styles.sectionTitle}>Why PredictAI thinks this</Text><Text allowFontScaling={false} style={styles.bodyText}>{analysis.summary}</Text></View>
         <View style={styles.section}><Text allowFontScaling={false} style={styles.sectionTitle}>What could change this view</Text>{analysis.risks.map((risk) => <View key={risk} style={styles.risk}><View style={styles.riskDot} /><Text allowFontScaling={false} style={styles.riskText}>{risk}</Text></View>)}</View>
         <View style={styles.updated}><Ionicons color={colors.textMuted} name="time-outline" size={14} /><Text allowFontScaling={false} style={styles.updatedText}>Updated just now</Text><Pressable onPress={() => setAttempt((current) => current + 1)} style={styles.refresh}><Ionicons color={colors.accent} name="refresh" size={14} /><Text allowFontScaling={false} style={styles.refreshText}>Refresh</Text></Pressable></View>
+        {onShareToPosts ? <Pressable onPress={() => onShareToPosts(analysis)} style={styles.share}><Ionicons color={colors.buttonText} name="share-social-outline" size={17}/><Text style={styles.shareText}>Share analysis to Posts</Text></Pressable> : null}
         <View style={styles.notice}><Ionicons color={colors.textMuted} name="information-circle-outline" size={17} /><Text allowFontScaling={false} style={styles.noticeText}>PredictAI provides model-generated estimates, not financial advice. Probabilities may be wrong and should not be your only basis for a prediction.</Text></View>
       </> : null}
     </ScrollView>
@@ -82,4 +83,6 @@ const styles = StyleSheet.create({
   refreshText: { color: colors.accent, fontSize: 9, fontWeight: '600' },
   notice: { marginTop: 10, borderRadius: 10, backgroundColor: '#151719', padding: 11, flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   noticeText: { flex: 1, color: colors.textFaint, fontSize: 8, lineHeight: 13 },
+  share: { marginTop: 14, minHeight: 45, borderRadius: 10, backgroundColor: colors.button, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  shareText: { color: colors.buttonText, fontSize: 11, fontWeight: '700' },
 });
