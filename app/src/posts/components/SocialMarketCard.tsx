@@ -8,6 +8,26 @@ export function SocialMarketCard({ marketId, onOpen }: { marketId: string; onOpe
   const market = markets.find((item) => item.id === marketId);
   if (!market) return null;
   const ai = getAIAnalysisPreview(market);
-  return <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [styles.card, pressed && styles.pressed]}><View style={styles.top}><View style={styles.icon}><Ionicons color={colors.accent} name={market.category === 'Crypto' ? 'logo-bitcoin' : market.category === 'Sports' ? 'football-outline' : 'analytics-outline'} size={17} /></View><Text allowFontScaling={false} numberOfLines={2} style={styles.title}>{market.title}</Text></View><View style={styles.metrics}><View><Text style={styles.label}>MARKET</Text><Text style={styles.value}>{ai.marketProbability}%</Text></View><View><Text style={styles.label}>PREDICTAI</Text><Text style={styles.ai}>{ai.probability}%</Text></View><View style={styles.edge}><Text style={styles.edgeLabel}>AI EDGE</Text><Text style={styles.edgeValue}>{ai.edge >= 0 ? '+' : ''}{ai.edge}%</Text></View></View><View style={styles.footer}><Text style={styles.volume}>{market.volume} volume</Text><Text style={styles.link}>View market <Ionicons name="arrow-forward" size={10} /></Text></View></Pressable>;
+  return <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
+    <View style={styles.top}><Ionicons color={colors.textMuted} name={market.category === 'Crypto' ? 'logo-bitcoin' : market.category === 'Sports' ? 'football-outline' : 'analytics-outline'} size={17}/><Text numberOfLines={2} style={styles.title}>{market.title}</Text></View>
+    <View style={styles.metrics}><Metric label="Market" value={`${ai.marketProbability}%`}/><Metric accent label="PredictAI" value={`${ai.probability}%`}/><View style={styles.edge}><Text style={styles.label}>AI edge</Text><Text style={styles.edgeValue}>{ai.edge >= 0 ? '+' : ''}{ai.edge}%</Text></View></View>
+    <View style={styles.footer}><Text style={styles.volume}>{market.volume} volume</Text><View style={styles.linkRow}><Text style={styles.link}>View market</Text><Ionicons color={colors.textMuted} name="arrow-forward" size={14}/></View></View>
+  </Pressable>;
 }
-const styles = StyleSheet.create({ card: { marginTop: 11, borderRadius: 12, borderWidth: 1, borderColor: '#303237', backgroundColor: '#16181A', padding: 12 }, pressed: { opacity: .7 }, top: { flexDirection: 'row', alignItems: 'center', gap: 9 }, icon: { width: 29, height: 29, borderRadius: 8, backgroundColor: '#283519', alignItems: 'center', justifyContent: 'center' }, title: { flex: 1, color: colors.text, fontSize: 12, lineHeight: 16, fontWeight: '600' }, metrics: { flexDirection: 'row', alignItems: 'flex-end', gap: 25, marginTop: 14 }, label: { color: colors.textMuted, fontSize: 7, fontWeight: '700' }, value: { color: colors.text, fontSize: 17, fontWeight: '700', marginTop: 2 }, ai: { color: colors.accent, fontSize: 17, fontWeight: '700', marginTop: 2 }, edge: { marginLeft: 'auto', alignItems: 'flex-end' }, edgeLabel: { color: colors.textMuted, fontSize: 7 }, edgeValue: { color: colors.accent, fontSize: 13, fontWeight: '700', marginTop: 2 }, footer: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 11, paddingTop: 9, flexDirection: 'row', justifyContent: 'space-between' }, volume: { color: colors.textFaint, fontSize: 8 }, link: { color: colors.textMuted, fontSize: 9, fontWeight: '600' } });
+function Metric({ accent, label, value }: { accent?: boolean; label: string; value: string }) { return <View><Text style={styles.label}>{label}</Text><Text style={[styles.value, accent && styles.accent]}>{value}</Text></View>; }
+const styles = StyleSheet.create({
+  card: { marginTop: 8, borderRadius: 12, borderWidth: 1, borderColor: '#25282C', backgroundColor: '#131517', padding: 16 },
+  pressed: { opacity: .72 },
+  top: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  title: { flex: 1, color: colors.text, fontSize: 15, lineHeight: 20, fontWeight: '600' },
+  metrics: { flexDirection: 'row', alignItems: 'flex-end', gap: 32, marginTop: 16 },
+  label: { color: colors.textMuted, fontSize: 11, fontWeight: '500' },
+  value: { color: colors.text, fontSize: 20, fontWeight: '700', marginTop: 4 },
+  accent: { color: colors.accent },
+  edge: { marginLeft: 'auto', alignItems: 'flex-end' },
+  edgeValue: { color: colors.accent, fontSize: 16, fontWeight: '700', marginTop: 4 },
+  footer: { borderTopWidth: 1, borderTopColor: colors.border, marginTop: 16, paddingTop: 12, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  volume: { color: colors.textMuted, fontSize: 11 },
+  linkRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  link: { color: colors.text, fontSize: 12, fontWeight: '600' },
+});

@@ -5,7 +5,6 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.predictai.app",
@@ -20,8 +19,21 @@
       }
     },
     "plugins": [
-      ["expo-local-authentication", {"faceIDPermission": "Use Face ID to securely unlock your PredictAI account."}],
-      ["expo-camera", {"cameraPermission": "Allow PredictAI to scan wallet QR codes for withdrawals.", "microphonePermission": false, "recordAudioAndroid": false}]
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Use Face ID to securely unlock your PredictAI account."
+        }
+      ],
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "Allow PredictAI to scan wallet QR codes for withdrawals.",
+          "microphonePermission": false,
+          "recordAudioAndroid": false
+        }
+      ],
+      "expo-font"
     ]
   }
 }
