@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { MarketCard } from "../components/MarketCard";
 import { AnnouncementCarousel } from "../components/FeaturedMarketsCarousel";
@@ -29,12 +29,14 @@ export function PredictScreen({
   email,
   onAskAI,
   onMarket,
+  onDepthChange,
   onOpenPublicProfile,
   onSignOut,
 }: {
   email: string;
   onAskAI: (market: Market) => void;
   onMarket: (market: Market) => void;
+  onDepthChange?: (deep: boolean) => void;
   onOpenPublicProfile: () => void;
   onSignOut: () => void;
 }) {
@@ -54,6 +56,11 @@ export function PredictScreen({
       .filter((notification) => notification.read)
       .map((notification) => notification.id),
   );
+  const deep = depositing || profileOpen || notificationsOpen || searchOpen || walletScannerOpen || walletWithdrawalOpen;
+  useEffect(() => {
+    onDepthChange?.(deep);
+  }, [deep, onDepthChange]);
+  useEffect(() => () => onDepthChange?.(false), [onDepthChange]);
   const visible = useMemo(
     () => (category === "All" ? markets : markets.filter((market) => market.category === category)),
     [category],
