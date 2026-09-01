@@ -10,7 +10,7 @@ export function SocialMarketCard({ marketId, onOpen }: { marketId: string; onOpe
   const ai = getAIAnalysisPreview(market);
   return <Pressable accessibilityRole="button" onPress={onOpen} style={({ pressed }) => [styles.card, pressed && styles.pressed]}>
     <View style={styles.top}><Ionicons color={colors.textMuted} name={market.category === 'Crypto' ? 'logo-bitcoin' : market.category === 'Sports' ? 'football-outline' : 'analytics-outline'} size={17}/><Text numberOfLines={2} style={styles.title}>{market.title}</Text></View>
-    <View style={styles.metrics}><Metric label="Market" value={`${ai.marketProbability}%`}/><Metric accent label="PredictAI" value={`${ai.probability}%`}/><View style={styles.edge}><Text style={styles.label}>AI edge</Text><Text style={styles.edgeValue}>{ai.edge >= 0 ? '+' : ''}{ai.edge}%</Text></View></View>
+    <View style={styles.metrics}><Metric label="Market" value={`${ai.marketProbability}%`}/><Metric accent label="PredictAI" value={`${ai.probability}%`}/><View style={styles.edge}><Text style={styles.label}>AI edge</Text><Text style={[styles.edgeValue, { color: ai.edge >= 0 ? colors.positive : colors.danger }]}>{ai.edge >= 0 ? '+' : ''}{ai.edge}%</Text></View></View>
     <View style={styles.footer}><Text style={styles.volume}>{market.volume} volume</Text><View style={styles.linkRow}><Text style={styles.link}>View market</Text><Ionicons color={colors.textMuted} name="arrow-forward" size={14}/></View></View>
   </Pressable>;
 }

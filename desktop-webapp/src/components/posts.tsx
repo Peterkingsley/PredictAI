@@ -231,7 +231,7 @@ export function PostCard({
         )}
         <div className="social-actions">
           <button
-            className={post.liked ? "active" : ""}
+            className={`like-action${post.liked ? " active" : ""}`}
             onClick={() => toggle("liked", "likes")}
           >
             <Heart /> {compact(post.likes)}

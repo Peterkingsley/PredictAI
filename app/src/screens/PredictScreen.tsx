@@ -424,5 +424,5 @@ const walletStyles = StyleSheet.create({
   },
   depositText: { color: colors.buttonText, fontSize: 13, fontWeight: "500" },
   pnl: { color: colors.text, fontSize: 11, marginTop: 10 },
-  pnlValue: { color: colors.text, fontSize: 11, fontWeight: "500" },
+  pnlValue: { color: colors.positive, fontSize: 11, fontWeight: "500" },
 });

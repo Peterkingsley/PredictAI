@@ -108,7 +108,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#25272C",
   },
   edgeNegative: { backgroundColor: "#411A23" },
-  edgeLabel: { color: colors.accent, fontSize: 10, fontWeight: "800" },
+  edgeLabel: { color: colors.positive, fontSize: 10, fontWeight: "800" },
   edgeLabelNegative: { color: "#FF728C" },
   footer: {
     marginTop: 13,

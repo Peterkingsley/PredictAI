@@ -14,6 +14,7 @@
   --faint: #60676a;
   --nav-inactive: #60676a;
   --primary: #9be116;
+  --positive: #39d98a;
   --accent: #f7f7f8;
   --accent-2: #f7f7f8;
   --accent-bg: #25272c;
@@ -199,7 +200,7 @@ textarea {
   color: var(--accent);
 }
 .positive {
-  color: var(--accent) !important;
+  color: var(--positive) !important;
 }
 .negative {
   color: var(--danger) !important;
@@ -1852,15 +1853,15 @@ textarea {
 .potential-win span svg {
   width: 13px;
   vertical-align: middle;
-  color: var(--accent);
+  color: var(--positive);
 }
 .potential-win strong {
   font-size: 20px;
-  color: var(--accent);
+  color: var(--positive);
   margin: 3px 0;
 }
 .potential-win small {
-  color: #71805e;
+  color: var(--faint);
   font-size: 9px;
 }
 .balance-line {
@@ -2262,6 +2263,9 @@ textarea {
 .social-actions button:hover,
 .social-actions button.active {
   color: var(--accent);
+}
+.social-actions button.like-action.active {
+  color: var(--positive);
 }
 .social-actions svg {
   width: 14px;

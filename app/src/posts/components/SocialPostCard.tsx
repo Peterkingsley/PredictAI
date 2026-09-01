@@ -49,7 +49,7 @@ export function SocialPostCard(props: Props) {
     {local.portfolio ? <PublicPortfolioCard onOpen={() => onOpenPortfolio(local.author.id)} portfolio={local.portfolio}/> : null}
     {local.aiAnalysis ? <AIAnalysisShareCard analysis={local.aiAnalysis} marketId={local.marketId} onOpen={local.marketId ? () => onOpenAnalysis(local.marketId!) : undefined}/> : null}
     {local.quotePostId ? <QuotedPostCard onOpen={() => onOpenPost(local.quotePostId!)} postId={local.quotePostId}/> : null}
-    {local.performanceSincePosted !== undefined ? <View style={styles.since}><Text style={styles.sinceLabel}>Since posted</Text><Text style={[styles.sinceValue, { color: local.performanceSincePosted >= 0 ? colors.accent : colors.danger }]}>{formatPercent(local.performanceSincePosted)}</Text></View> : null}
+    {local.performanceSincePosted !== undefined ? <View style={styles.since}><Text style={styles.sinceLabel}>Since posted</Text><Text style={[styles.sinceValue, { color: local.performanceSincePosted >= 0 ? colors.positive : colors.danger }]}>{formatPercent(local.performanceSincePosted)}</Text></View> : null}
     <SocialActionRow onComment={onComment} onLike={() => void likePost(local.id, !local.liked).then(changed)} onQuote={() => onQuote(local.id)} onRepost={() => void repostPost(local.id).then(changed)} onSave={() => void savePost(local.id, !local.saved).then(changed)} post={local}/>
     <PostOptionsSheet onChanged={onChanged} onClose={() => setOptionsOpen(false)} post={local} visible={optionsOpen}/>
   </View>;

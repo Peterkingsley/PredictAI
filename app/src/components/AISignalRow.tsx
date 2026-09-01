@@ -5,7 +5,7 @@ import type { AISignal } from '../types/aiAnalysis';
 export function AISignalRow({ signal }: { signal: AISignal }) {
   const positive = signal.sentiment === 'bullish' || signal.sentiment === 'positive';
   const negative = signal.sentiment === 'bearish' || signal.sentiment === 'negative';
-  const tone = positive ? colors.accent : negative ? '#FF728C' : '#B4B6BC';
+  const tone = positive ? colors.positive : negative ? '#FF728C' : '#B4B6BC';
   return <View style={styles.row}><View style={styles.copy}><Text allowFontScaling={false} style={styles.name}>{signal.name}</Text><Text allowFontScaling={false} style={styles.explanation}>{signal.explanation}</Text></View><View style={styles.score}><Text allowFontScaling={false} style={[styles.scoreValue, { color: tone }]}>{signal.score}</Text><Text allowFontScaling={false} style={[styles.sentiment, { color: tone }]}>{signal.sentiment.toUpperCase()}</Text></View></View>;
 }
 

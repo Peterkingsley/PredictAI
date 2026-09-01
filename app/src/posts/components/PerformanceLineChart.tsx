@@ -32,7 +32,7 @@ function smoothPath(points: Point[]) {
 
 export function PerformanceLineChart({ color, height = 112, values }: { color?: string; height?: number; values: number[] }) {
   const [width, setWidth] = useState(0);
-  const lineColor = color ?? (values[values.length - 1]! >= values[0]! ? colors.accent : colors.danger);
+  const lineColor = color ?? (values[values.length - 1]! >= values[0]! ? colors.positive : colors.danger);
   const points = useMemo(() => createPoints(values, width, height), [height, values, width]);
   const linePath = useMemo(() => smoothPath(points), [points]);
   const areaPath = points.length ? `${linePath} L ${points[points.length - 1]!.x} ${height - 5} L ${points[0]!.x} ${height - 5} Z` : '';

@@ -7,6 +7,7 @@ export const colors = {
   navInactive: "#60676A",
   border: "#26282C",
   primary: "#9BE116",
+  positive: "#39D98A",
   accent: "#F7F7F8",
   danger: "#FF6262",
   button: "#F7F7F8",

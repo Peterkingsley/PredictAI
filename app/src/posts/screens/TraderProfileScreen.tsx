@@ -109,9 +109,9 @@ export function TraderProfileScreen(props: Props) {
     <View style={styles.performanceSection}>
       <View style={styles.performanceHeading}>
         <Text style={styles.sectionTitle}>Performance</Text>
-        <Text style={[styles.performanceValue, { color: positivePerformance ? colors.accent : colors.danger }]}>{formatPercent(publicPerformance, 1)}</Text>
+        <Text style={[styles.performanceValue, { color: positivePerformance ? colors.positive : colors.danger }]}>{formatPercent(publicPerformance, 1)}</Text>
       </View>
-      <PerformanceLineChart color={positivePerformance ? colors.accent : colors.danger} height={116} values={performanceSeries}/>
+      <PerformanceLineChart color={positivePerformance ? colors.positive : colors.danger} height={116} values={performanceSeries}/>
       <View style={styles.ranges}>{(['7D', '30D', '3M', 'All'] as const).map((range) => <Pressable key={range} onPress={() => setPerformanceRange(range)} style={styles.range}><Text style={[styles.rangeText, performanceRange === range && styles.rangeTextActive]}>{range.toUpperCase()}</Text>{performanceRange === range ? <View style={styles.rangeIndicator}/> : null}</Pressable>)}</View>
     </View>
 
@@ -133,7 +133,7 @@ export function TraderProfileScreen(props: Props) {
 }
 
 function Metric({ accent, label, negative, value }: { accent?: boolean; label: string; negative?: boolean; value: string }) {
-  return <View style={styles.metric}><Text style={[styles.metricValue, accent && { color: negative ? colors.danger : colors.accent }]}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
+  return <View style={styles.metric}><Text style={[styles.metricValue, accent && { color: negative ? colors.danger : colors.positive }]}>{value}</Text><Text style={styles.metricLabel}>{label}</Text></View>;
 }
 function EmptyCopy({ text }: { text: string }) { return <Text style={styles.empty}>{text}</Text>; }
 

@@ -42,7 +42,7 @@ export function AIAnalysisShareCard({
         </View>
         <View style={styles.edge}>
           <Text style={styles.label}>AI edge</Text>
-          <Text style={styles.aiValue}>
+          <Text style={[styles.aiValue, { color: analysis.edge >= 0 ? colors.positive : colors.danger }]}>
             {analysis.edge >= 0 ? "+" : ""}
             {analysis.edge}%
           </Text>

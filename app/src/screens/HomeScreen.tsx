@@ -81,7 +81,7 @@ export function HomeScreen({ onPredict }: { onPredict: () => void }) {
             <Text style={styles.muted}>${coin.price}</Text>
           </View>
           <View style={[styles.change, coin.change.startsWith("+") && styles.positive]}>
-            <Text style={styles.changeText}>{coin.change}</Text>
+            <Text style={[styles.changeText, coin.change.startsWith("+") && styles.positiveText]}>{coin.change}</Text>
           </View>
         </View>
       ))}
@@ -193,5 +193,6 @@ const styles = StyleSheet.create({
     borderRadius: 10,
   },
   positive: { backgroundColor: "#25272C" },
+  positiveText: { color: colors.positive },
   changeText: { color: "#fff", fontSize: 17, fontWeight: "600" },
 });

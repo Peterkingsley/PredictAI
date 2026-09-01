@@ -9,7 +9,7 @@ export function PublicPositionCard({ position }: { position: PublicPosition }) {
   return <View style={styles.card}>
     <View style={styles.heading}>
       <View style={styles.identity}><Text style={styles.symbol}>{position.assetSymbol}</Text><Text numberOfLines={1} style={styles.name}>{position.assetName}</Text></View>
-      {position.showPerformance ? <View style={styles.performance}><Text style={[styles.performanceValue, { color: positive ? colors.accent : colors.danger }]}>{formatPercent(position.performancePercent, 2)}</Text><Text style={styles.performanceLabel}>Since entry</Text></View> : null}
+      {position.showPerformance ? <View style={styles.performance}><Text style={[styles.performanceValue, { color: positive ? colors.positive : colors.danger }]}>{formatPercent(position.performancePercent, 2)}</Text><Text style={styles.performanceLabel}>Since entry</Text></View> : null}
     </View>
     {hasDetails ? <View style={styles.rows}>
       {position.showEntryPrice && position.entryPrice ? <Row label="Entry" value={formatPrice(position.entryPrice)}/> : null}
