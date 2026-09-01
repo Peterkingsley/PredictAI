@@ -1959,11 +1959,11 @@ textarea {
   transition: 0.18s;
 }
 .toggle.is-on {
-  background: var(--primary);
+  background: #000000;
 }
 .toggle.is-on span {
   transform: translateX(17px);
-  background: #000000;
+  background: var(--primary);
 }
 .toast-stack {
   position: fixed;

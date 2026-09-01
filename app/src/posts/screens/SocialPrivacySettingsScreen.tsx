@@ -75,8 +75,8 @@ export function SocialPrivacySettingsScreen({ onBack }: { onBack: () => void }) 
             </View>
             <Switch
               onValueChange={(value) => toggle(option.key, value)}
-              thumbColor={settings[option.key] ? colors.buttonText : "#B4B4B6"}
-              trackColor={{ false: "#303238", true: colors.primary }}
+              thumbColor={settings[option.key] ? colors.primary : "#B4B4B6"}
+              trackColor={{ false: "#303238", true: colors.background }}
               value={settings[option.key]}
             />
           </View>

@@ -102,8 +102,8 @@ function ToggleRow({
       <Switch
         ios_backgroundColor="#35383E"
         onValueChange={onChange}
-        thumbColor={value ? colors.buttonText : "#A5A7AC"}
-        trackColor={{ false: "#35383E", true: colors.primary }}
+        thumbColor={value ? colors.primary : "#A5A7AC"}
+        trackColor={{ false: "#35383E", true: colors.background }}
         value={value}
       />
     </View>

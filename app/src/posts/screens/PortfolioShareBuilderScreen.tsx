@@ -22,8 +22,8 @@ function Toggle({
       <Text style={styles.toggleLabel}>{label}</Text>
       <Switch
         onValueChange={onChange}
-        thumbColor={value ? colors.buttonText : "#AAA"}
-        trackColor={{ false: "#35383E", true: colors.primary }}
+        thumbColor={value ? colors.primary : "#AAA"}
+        trackColor={{ false: "#35383E", true: colors.background }}
         value={value}
       />
     </View>

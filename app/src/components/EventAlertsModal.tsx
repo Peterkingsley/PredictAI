@@ -30,8 +30,8 @@ function SettingRow({
       <Switch
         ios_backgroundColor="#35383E"
         onValueChange={onChange}
-        thumbColor={enabled ? colors.buttonText : "#A5A7AC"}
-        trackColor={{ false: "#35383E", true: colors.primary }}
+        thumbColor={enabled ? colors.primary : "#A5A7AC"}
+        trackColor={{ false: "#35383E", true: colors.background }}
         value={enabled}
       />
     </View>
