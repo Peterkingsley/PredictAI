@@ -22,7 +22,7 @@ function Toggle({
       <Switch
         onValueChange={onChange}
         thumbColor={value ? colors.buttonText : "#AAA"}
-        trackColor={{ false: "#35383E", true: colors.accent }}
+        trackColor={{ false: "#35383E", true: colors.primary }}
         value={value}
       />
     </View>

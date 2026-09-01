@@ -1959,7 +1959,7 @@ textarea {
   transition: 0.18s;
 }
 .toggle.is-on {
-  background: var(--accent);
+  background: var(--primary);
 }
 .toggle.is-on span {
   transform: translateX(17px);

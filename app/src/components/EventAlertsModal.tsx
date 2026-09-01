@@ -31,7 +31,7 @@ function SettingRow({
         ios_backgroundColor="#35383E"
         onValueChange={onChange}
         thumbColor={enabled ? colors.buttonText : "#A5A7AC"}
-        trackColor={{ false: "#35383E", true: colors.accent }}
+        trackColor={{ false: "#35383E", true: colors.primary }}
         value={enabled}
       />
     </View>
