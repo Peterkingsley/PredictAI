@@ -1,40 +1,7 @@
-# Dependencies
-node_modules/
+app/.expo/
+app/android/
+app/builds/
+app/node_modules/
+desktop-webapp/dist/
+desktop-webapp/node_modules/
 
-# Expo and EAS
-.expo/
-dist/
-web-build/
-*.jks
-*.p8
-*.p12
-*.mobileprovision
-
-# Environment files
-.env
-.env.*
-!.env.example
-
-# Python
-__pycache__/
-*.py[cod]
-.venv/
-venv/
-.pytest_cache/
-
-# Build and test output
-build/
-coverage/
-.coverage
-
-# Editors and operating systems
-.vscode/
-.idea/
-.DS_Store
-Thumbs.db
-
-# Logs
-*.log
-npm-debug.log*
-yarn-debug.log*
-yarn-error.log*
