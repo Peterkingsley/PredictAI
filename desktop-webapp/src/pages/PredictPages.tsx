@@ -105,7 +105,6 @@ export function PredictHome() {
         </div>
         <div className="wallet-buttons">
           <Button
-            variant="secondary"
             onClick={() => navigate("/app/assets/deposit")}
           >
             Deposit

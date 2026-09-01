@@ -15,7 +15,7 @@
     "android": {
       "package": "com.predictai.app",
       "adaptiveIcon": {
-        "backgroundColor": "#0D0E10"
+        "backgroundColor": "#000000"
       }
     },
     "plugins": [

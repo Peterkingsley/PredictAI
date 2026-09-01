@@ -1,12 +1,132 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
-import { markets } from '../../services/marketData';
-import { colors } from '../../theme/colors';
+import { Ionicons } from "@expo/vector-icons";
+import { useMemo, useState } from "react";
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { markets } from "../../services/marketData";
+import { colors } from "../../theme/colors";
 
-export function PostMarketPickerScreen({ onBack, onSelect }: { onBack: () => void; onSelect: (marketId: string) => void }) {
-  const [query, setQuery] = useState('');
-  const results = useMemo(() => markets.filter((market) => [market.title, market.category, market.subcategory].join(' ').toLowerCase().includes(query.trim().toLowerCase())), [query]);
-  return <View style={styles.root}><View style={styles.header}><Pressable onPress={onBack}><Ionicons color={colors.text} name="chevron-back" size={25} /></Pressable><Text style={styles.title}>Add market</Text><View style={styles.spacer} /></View><View style={styles.search}><Ionicons color={colors.textMuted} name="search-outline" size={17} /><TextInput autoFocus onChangeText={setQuery} placeholder="Search markets" placeholderTextColor={colors.textMuted} style={styles.input} value={query} /></View><ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">{results.map((market) => <Pressable key={market.id} onPress={() => onSelect(market.id)} style={({ pressed }) => [styles.row, pressed && styles.pressed]}><View style={styles.icon}><Ionicons color={colors.accent} name={market.category === 'Crypto' ? 'logo-bitcoin' : market.category === 'Sports' ? 'football-outline' : 'analytics-outline'} size={18} /></View><View style={styles.copy}><Text numberOfLines={2} style={styles.marketTitle}>{market.title}</Text><Text style={styles.meta}>{market.category} · {market.subcategory} · {market.volume}</Text></View><View style={styles.probability}><Text style={styles.probabilityText}>{market.outcomes[0]?.probability ?? 0}%</Text></View></Pressable>)}</ScrollView></View>;
+export function PostMarketPickerScreen({
+  onBack,
+  onSelect,
+}: {
+  onBack: () => void;
+  onSelect: (marketId: string) => void;
+}) {
+  const [query, setQuery] = useState("");
+  const results = useMemo(
+    () =>
+      markets.filter((market) =>
+        [market.title, market.category, market.subcategory]
+          .join(" ")
+          .toLowerCase()
+          .includes(query.trim().toLowerCase()),
+      ),
+    [query],
+  );
+  return (
+    <View style={styles.root}>
+      <View style={styles.header}>
+        <Pressable onPress={onBack}>
+          <Ionicons color={colors.text} name="chevron-back" size={25} />
+        </Pressable>
+        <Text style={styles.title}>Add market</Text>
+        <View style={styles.spacer} />
+      </View>
+      <View style={styles.search}>
+        <Ionicons color={colors.textMuted} name="search-outline" size={17} />
+        <TextInput
+          autoFocus
+          onChangeText={setQuery}
+          placeholder="Search markets"
+          placeholderTextColor={colors.textMuted}
+          style={styles.input}
+          value={query}
+        />
+      </View>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        {results.map((market) => (
+          <Pressable
+            key={market.id}
+            onPress={() => onSelect(market.id)}
+            style={({ pressed }) => [styles.row, pressed && styles.pressed]}
+          >
+            <View style={styles.icon}>
+              <Ionicons
+                color={colors.accent}
+                name={
+                  market.category === "Crypto"
+                    ? "logo-bitcoin"
+                    : market.category === "Sports"
+                      ? "football-outline"
+                      : "analytics-outline"
+                }
+                size={18}
+              />
+            </View>
+            <View style={styles.copy}>
+              <Text numberOfLines={2} style={styles.marketTitle}>
+                {market.title}
+              </Text>
+              <Text style={styles.meta}>
+                {market.category} · {market.subcategory} · {market.volume}
+              </Text>
+            </View>
+            <View style={styles.probability}>
+              <Text style={styles.probabilityText}>{market.outcomes[0]?.probability ?? 0}%</Text>
+            </View>
+          </Pressable>
+        ))}
+      </ScrollView>
+    </View>
+  );
 }
-const styles = StyleSheet.create({ root: { flex: 1, backgroundColor: colors.background }, header: { height: 52, paddingHorizontal: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }, title: { color: colors.text, fontSize: 16, fontWeight: '600' }, spacer: { width: 25 }, search: { height: 42, marginHorizontal: 15, borderRadius: 10, backgroundColor: colors.surface, paddingHorizontal: 11, flexDirection: 'row', alignItems: 'center', gap: 8 }, input: { flex: 1, color: colors.text, fontSize: 11 }, content: { padding: 15 }, row: { minHeight: 69, flexDirection: 'row', alignItems: 'center', gap: 10, borderBottomWidth: 1, borderBottomColor: colors.border }, icon: { width: 36, height: 36, borderRadius: 10, backgroundColor: '#263019', alignItems: 'center', justifyContent: 'center' }, copy: { flex: 1 }, marketTitle: { color: colors.text, fontSize: 11, lineHeight: 15, fontWeight: '600' }, meta: { color: colors.textMuted, fontSize: 8, marginTop: 4 }, probability: { paddingHorizontal: 9, paddingVertical: 7, borderRadius: 7, backgroundColor: '#2B3A17' }, probabilityText: { color: colors.accent, fontSize: 10, fontWeight: '700' }, pressed: { opacity: .6 } });
+const styles = StyleSheet.create({
+  root: { flex: 1, backgroundColor: colors.background },
+  header: {
+    height: 52,
+    paddingHorizontal: 15,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  title: { color: colors.text, fontSize: 16, fontWeight: "600" },
+  spacer: { width: 25 },
+  search: {
+    height: 42,
+    marginHorizontal: 15,
+    borderRadius: 10,
+    backgroundColor: colors.surface,
+    paddingHorizontal: 11,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  input: { flex: 1, color: colors.text, fontSize: 11 },
+  content: { padding: 15 },
+  row: {
+    minHeight: 69,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.border,
+  },
+  icon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: "#25272C",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  copy: { flex: 1 },
+  marketTitle: { color: colors.text, fontSize: 11, lineHeight: 15, fontWeight: "600" },
+  meta: { color: colors.textMuted, fontSize: 8, marginTop: 4 },
+  probability: {
+    paddingHorizontal: 9,
+    paddingVertical: 7,
+    borderRadius: 7,
+    backgroundColor: "#25272C",
+  },
+  probabilityText: { color: colors.accent, fontSize: 10, fontWeight: "700" },
+  pressed: { opacity: 0.6 },
+});

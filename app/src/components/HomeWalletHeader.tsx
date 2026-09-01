@@ -1,30 +1,224 @@
-import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
-import { Image, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useProfilePhoto } from '../services/profilePhoto';
-import { colors } from '../theme/colors';
+import { Ionicons } from "@expo/vector-icons";
+import { useState } from "react";
+import { Image, Modal, Pressable, StyleSheet, Text, View } from "react-native";
+import { useProfilePhoto } from "../services/profilePhoto";
+import { colors } from "../theme/colors";
 
-type BalanceCurrency = 'BTC' | 'USD' | 'NGN' | 'GBP';
+type BalanceCurrency = "BTC" | "USD" | "NGN" | "GBP";
 const currencies: { code: BalanceCurrency; symbol: string; zero: string }[] = [
-  { code: 'BTC', symbol: '₿', zero: '0.00000000' },
-  { code: 'USD', symbol: '$', zero: '$0.00' },
-  { code: 'NGN', symbol: '₦', zero: '₦0.00' },
-  { code: 'GBP', symbol: '£', zero: '£0.00' },
+  { code: "BTC", symbol: "₿", zero: "0.00000000" },
+  { code: "USD", symbol: "$", zero: "$0.00" },
+  { code: "NGN", symbol: "₦", zero: "₦0.00" },
+  { code: "GBP", symbol: "£", zero: "£0.00" },
 ];
 
 export function HomeWalletHeader({ hasUnreadNotifications, onDeposit, onNotifications, onProfile, onScan, onSearch }: { hasUnreadNotifications: boolean; onDeposit: () => void; onNotifications: () => void; onProfile: () => void; onScan: () => void; onSearch: () => void }) {
   const photo = useProfilePhoto();
   const [hidden, setHidden] = useState(false);
-  const [currency, setCurrency] = useState<BalanceCurrency>('USD');
+  const [currency, setCurrency] = useState<BalanceCurrency>("USD");
   const [pickerOpen, setPickerOpen] = useState(false);
   const selected = currencies.find((item) => item.code === currency) ?? currencies[0]!;
 
-  return <View style={styles.wallet}>
-    <View style={styles.toolbar}><Pressable accessibilityLabel="Open profile" hitSlop={8} onPress={onProfile} style={({ pressed }) => [styles.avatar, pressed && styles.avatarPressed]}>{photo.uri ? <Image key={photo.revision} source={{ uri: photo.uri }} style={styles.avatarImage}/> : <Text allowFontScaling={false} style={styles.avatarText}>P</Text>}</Pressable><Pressable accessibilityLabel="Search prediction events" onPress={onSearch} style={({ pressed }) => [styles.searchBar, pressed && styles.searchPressed]}><Ionicons color={colors.textMuted} name="search" size={15} /><Text allowFontScaling={false} style={styles.searchText}>Search events</Text></Pressable><Pressable accessibilityLabel="Scan wallet address for withdrawal" hitSlop={8} onPress={onScan} style={({ pressed }) => pressed && styles.iconPressed}><Ionicons color={colors.text} name="scan-outline" size={20} /></Pressable><Ionicons color={colors.text} name="headset-outline" size={20} /><Pressable accessibilityLabel="Open notifications" hitSlop={8} onPress={onNotifications} style={({ pressed }) => pressed && styles.iconPressed}><Ionicons color={colors.text} name="notifications-outline" size={20} />{hasUnreadNotifications ? <View style={styles.notificationDot} /> : null}</Pressable></View>
-    <View style={styles.balanceRow}><View><View style={styles.balanceLabelRow}><Text allowFontScaling={false} style={styles.walletLabel}>Total Balance</Text><Pressable accessibilityLabel={hidden ? 'Show balance' : 'Hide balance'} hitSlop={10} onPress={() => setHidden((current) => !current)}><Ionicons color={colors.textMuted} name={hidden ? 'eye-off-outline' : 'eye-outline'} size={15} /></Pressable></View><View style={styles.valueRow}><Text allowFontScaling={false} style={styles.walletValue}>{hidden ? '••••••••' : selected.zero}</Text><Pressable onPress={() => setPickerOpen(true)} style={styles.currencyButton}><Text allowFontScaling={false} style={styles.currency}>{currency}</Text><Ionicons color={colors.textMuted} name="chevron-down" size={12} /></Pressable></View><Text allowFontScaling={false} style={styles.usdValue}>{hidden ? '≈$••••' : currency === 'USD' ? 'Primary display currency' : '≈$0.00 USD'}</Text></View><Pressable onPress={onDeposit} style={styles.depositButton}><Text allowFontScaling={false} style={styles.depositText}>Deposit</Text></Pressable></View>
-    <Text allowFontScaling={false} style={styles.pnl}>Today's P&amp;L  <Text style={styles.pnlValue}>+$0.00 (+0.00%)</Text></Text>
-    <Modal transparent animationType="fade" visible={pickerOpen} onRequestClose={() => setPickerOpen(false)}><Pressable style={styles.overlay} onPress={() => setPickerOpen(false)}><Pressable style={styles.picker} onPress={() => undefined}><View style={styles.handle} /><Text allowFontScaling={false} style={styles.pickerTitle}>Display balance in</Text>{currencies.map((item) => <Pressable key={item.code} onPress={() => { setCurrency(item.code); setPickerOpen(false); }} style={[styles.currencyOption, currency === item.code && styles.currencyOptionSelected]}><View style={styles.currencySymbol}><Text allowFontScaling={false} style={styles.symbolText}>{item.symbol}</Text></View><Text allowFontScaling={false} style={styles.currencyCode}>{item.code}</Text>{currency === item.code ? <Ionicons color={colors.accent} name="checkmark" size={20} /> : null}</Pressable>)}</Pressable></Pressable></Modal>
-  </View>;
+  return (
+    <View style={styles.wallet}>
+      <View style={styles.toolbar}>
+        <Pressable accessibilityLabel="Open profile" hitSlop={8} onPress={onProfile} style={({ pressed }) => [styles.avatar, pressed && styles.avatarPressed]}>
+          {photo.uri ? (
+            <Image key={photo.revision} source={{ uri: photo.uri }} style={styles.avatarImage} />
+          ) : (
+            <Text allowFontScaling={false} style={styles.avatarText}>
+              P
+            </Text>
+          )}
+        </Pressable>
+        <Pressable accessibilityLabel="Search prediction events" onPress={onSearch} style={({ pressed }) => [styles.searchBar, pressed && styles.searchPressed]}>
+          <Ionicons color={colors.textMuted} name="search" size={15} />
+          <Text allowFontScaling={false} style={styles.searchText}>
+            Search events
+          </Text>
+        </Pressable>
+        <Pressable accessibilityLabel="Scan wallet address for withdrawal" hitSlop={8} onPress={onScan} style={({ pressed }) => pressed && styles.iconPressed}>
+          <Ionicons color={colors.text} name="scan-outline" size={20} />
+        </Pressable>
+        <Ionicons color={colors.text} name="headset-outline" size={20} />
+        <Pressable accessibilityLabel="Open notifications" hitSlop={8} onPress={onNotifications} style={({ pressed }) => pressed && styles.iconPressed}>
+          <Ionicons color={colors.text} name="notifications-outline" size={20} />
+          {hasUnreadNotifications ? <View style={styles.notificationDot} /> : null}
+        </Pressable>
+      </View>
+      <View style={styles.balanceRow}>
+        <View>
+          <View style={styles.balanceLabelRow}>
+            <Text allowFontScaling={false} style={styles.walletLabel}>
+              Total Balance
+            </Text>
+            <Pressable accessibilityLabel={hidden ? "Show balance" : "Hide balance"} hitSlop={10} onPress={() => setHidden((current) => !current)}>
+              <Ionicons color={colors.textMuted} name={hidden ? "eye-off-outline" : "eye-outline"} size={15} />
+            </Pressable>
+          </View>
+          <View style={styles.valueRow}>
+            <Text allowFontScaling={false} style={styles.walletValue}>
+              {hidden ? "••••••••" : selected.zero}
+            </Text>
+            <Pressable onPress={() => setPickerOpen(true)} style={styles.currencyButton}>
+              <Text allowFontScaling={false} style={styles.currency}>
+                {currency}
+              </Text>
+              <Ionicons color={colors.textMuted} name="chevron-down" size={12} />
+            </Pressable>
+          </View>
+          <Text allowFontScaling={false} style={styles.usdValue}>
+            {hidden ? "≈$••••" : currency === "USD" ? "Primary display currency" : "≈$0.00 USD"}
+          </Text>
+        </View>
+        <Pressable onPress={onDeposit} style={styles.depositButton}>
+          <Text allowFontScaling={false} style={styles.depositText}>
+            Deposit
+          </Text>
+        </Pressable>
+      </View>
+      <Text allowFontScaling={false} style={styles.pnl}>
+        Today's P&amp;L <Text style={styles.pnlValue}>+$0.00 (+0.00%)</Text>
+      </Text>
+      <Modal transparent animationType="fade" visible={pickerOpen} onRequestClose={() => setPickerOpen(false)}>
+        <Pressable style={styles.overlay} onPress={() => setPickerOpen(false)}>
+          <Pressable style={styles.picker} onPress={() => undefined}>
+            <View style={styles.handle} />
+            <Text allowFontScaling={false} style={styles.pickerTitle}>
+              Display balance in
+            </Text>
+            {currencies.map((item) => (
+              <Pressable
+                key={item.code}
+                onPress={() => {
+                  setCurrency(item.code);
+                  setPickerOpen(false);
+                }}
+                style={[styles.currencyOption, currency === item.code && styles.currencyOptionSelected]}
+              >
+                <View style={styles.currencySymbol}>
+                  <Text allowFontScaling={false} style={styles.symbolText}>
+                    {item.symbol}
+                  </Text>
+                </View>
+                <Text allowFontScaling={false} style={styles.currencyCode}>
+                  {item.code}
+                </Text>
+                {currency === item.code ? <Ionicons color={colors.accent} name="checkmark" size={20} /> : null}
+              </Pressable>
+            ))}
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </View>
+  );
 }
 
-const styles = StyleSheet.create({ wallet: { paddingHorizontal: 16, paddingTop: 8, paddingBottom: 13, borderTopWidth: 1, borderTopColor: colors.border }, toolbar: { height: 38, flexDirection: 'row', alignItems: 'center', gap: 13 }, avatar: { width: 27, height: 27, borderRadius: 14, backgroundColor: colors.button, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.accent, overflow: 'hidden' }, avatarImage: { width: '100%', height: '100%' }, avatarPressed: { opacity: .7, transform: [{ scale: .96 }] }, avatarText: { color: colors.buttonText, fontSize: 12, fontWeight: '800' }, searchBar: { flex: 1, height: 30, borderRadius: 8, paddingHorizontal: 10, backgroundColor: colors.surface, flexDirection: 'row', alignItems: 'center', gap: 7 }, searchPressed: { opacity: .68 }, searchText: { color: colors.textMuted, fontSize: 12 }, iconPressed: { opacity: .55 }, notificationDot: { position: 'absolute', top: -1, right: -1, width: 6, height: 6, borderRadius: 3, backgroundColor: '#F23861', borderWidth: 1, borderColor: colors.background }, balanceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 9 }, balanceLabelRow: { flexDirection: 'row', alignItems: 'center', gap: 6 }, walletLabel: { color: colors.textMuted, fontSize: 11 }, valueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 7, marginTop: 3 }, walletValue: { color: colors.text, fontSize: 24, fontWeight: '600' }, currencyButton: { flexDirection: 'row', alignItems: 'center', gap: 2, paddingVertical: 3 }, currency: { color: colors.text, fontSize: 12 }, usdValue: { color: colors.textMuted, fontSize: 10, marginTop: 3 }, depositButton: { minWidth: 72, paddingHorizontal: 16, paddingVertical: 10, borderRadius: 9, backgroundColor: colors.button, alignItems: 'center' }, depositText: { color: colors.buttonText, fontSize: 13, fontWeight: '500' }, pnl: { color: colors.text, fontSize: 11, marginTop: 10 }, pnlValue: { color: colors.text, fontSize: 11, fontWeight: '500' }, overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,.75)', justifyContent: 'flex-end' }, picker: { backgroundColor: '#1A1C1E', borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 18, paddingBottom: 32 }, handle: { width: 56, height: 4, borderRadius: 2, backgroundColor: '#4A4C51', alignSelf: 'center', marginBottom: 22 }, pickerTitle: { color: colors.text, fontSize: 18, fontWeight: '700', marginBottom: 14 }, currencyOption: { minHeight: 52, borderRadius: 11, paddingHorizontal: 13, flexDirection: 'row', alignItems: 'center', gap: 11 }, currencyOptionSelected: { backgroundColor: colors.surface }, currencySymbol: { width: 29, height: 29, borderRadius: 15, backgroundColor: '#303238', alignItems: 'center', justifyContent: 'center' }, symbolText: { color: colors.text, fontSize: 14, fontWeight: '700' }, currencyCode: { flex: 1, color: colors.text, fontSize: 14, fontWeight: '600' } });
+const styles = StyleSheet.create({
+  wallet: {
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 13,
+    borderTopWidth: 1,
+    borderTopColor: colors.border,
+  },
+  toolbar: { height: 38, flexDirection: "row", alignItems: "center", gap: 13 },
+  avatar: {
+    width: 27,
+    height: 27,
+    borderRadius: 14,
+    backgroundColor: colors.button,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: colors.accent,
+    overflow: "hidden",
+  },
+  avatarImage: { width: "100%", height: "100%" },
+  avatarPressed: { opacity: 0.7, transform: [{ scale: 0.96 }] },
+  avatarText: { color: colors.buttonText, fontSize: 12, fontWeight: "800" },
+  searchBar: {
+    flex: 1,
+    height: 30,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    backgroundColor: colors.surface,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+  },
+  searchPressed: { opacity: 0.68 },
+  searchText: { color: colors.textMuted, fontSize: 12 },
+  iconPressed: { opacity: 0.55 },
+  notificationDot: {
+    position: "absolute",
+    top: -1,
+    right: -1,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#F23861",
+    borderWidth: 1,
+    borderColor: colors.background,
+  },
+  balanceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 9,
+  },
+  balanceLabelRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  walletLabel: { color: colors.textMuted, fontSize: 11 },
+  valueRow: { flexDirection: "row", alignItems: "baseline", gap: 7, marginTop: 3 },
+  walletValue: { color: colors.text, fontSize: 24, fontWeight: "600" },
+  currencyButton: { flexDirection: "row", alignItems: "center", gap: 2, paddingVertical: 3 },
+  currency: { color: colors.text, fontSize: 12 },
+  usdValue: { color: colors.textMuted, fontSize: 10, marginTop: 3 },
+  depositButton: {
+    minWidth: 72,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 9,
+    backgroundColor: colors.primary,
+    alignItems: "center",
+  },
+  depositText: { color: colors.buttonText, fontSize: 13, fontWeight: "500" },
+  pnl: { color: colors.text, fontSize: 11, marginTop: 10 },
+  pnlValue: { color: colors.text, fontSize: 11, fontWeight: "500" },
+  overlay: { flex: 1, backgroundColor: "rgba(0,0,0,.75)", justifyContent: "flex-end" },
+  picker: {
+    backgroundColor: "#1A1C1E",
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    padding: 18,
+    paddingBottom: 32,
+  },
+  handle: {
+    width: 56,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: "#4A4C51",
+    alignSelf: "center",
+    marginBottom: 22,
+  },
+  pickerTitle: { color: colors.text, fontSize: 18, fontWeight: "700", marginBottom: 14 },
+  currencyOption: {
+    minHeight: 52,
+    borderRadius: 11,
+    paddingHorizontal: 13,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 11,
+  },
+  currencyOptionSelected: { backgroundColor: colors.surface },
+  currencySymbol: {
+    width: 29,
+    height: 29,
+    borderRadius: 15,
+    backgroundColor: "#303238",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  symbolText: { color: colors.text, fontSize: 14, fontWeight: "700" },
+  currencyCode: { flex: 1, color: colors.text, fontSize: 14, fontWeight: "600" },
+});
