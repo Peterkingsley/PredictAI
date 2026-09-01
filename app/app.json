@@ -16,7 +16,13 @@
       "package": "com.predictai.app",
       "adaptiveIcon": {
         "backgroundColor": "#000000"
-      }
+      },
+      "permissions": [
+        "android.permission.USE_BIOMETRIC",
+        "android.permission.USE_FINGERPRINT",
+        "android.permission.CAMERA",
+        "android.permission.RECORD_AUDIO"
+      ]
     },
     "plugins": [
       [
@@ -40,6 +46,12 @@
           "photosPermission": "Allow PredictAI to choose a profile photo from your library."
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "968256f3-47f9-4966-ae04-a62ce9942480"
+      }
+    },
+    "owner": "akademiapp21s-organization"
   }
 }
