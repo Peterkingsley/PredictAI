@@ -1215,8 +1215,8 @@ textarea {
 }
 .ask-ai {
   width: 100%;
-  border: 1px solid var(--border);
-  background: var(--surface-2);
+  border: 1px solid #303b27;
+  background: #171e14;
   color: var(--text);
   height: 45px;
   border-radius: 9px;
@@ -1229,8 +1229,8 @@ textarea {
   overflow: hidden;
 }
 .ask-ai:hover {
-  border-color: var(--text);
-  background: var(--surface-3);
+  border-color: #627d37;
+  background: #1b2515;
 }
 .ask-ai > span:last-child {
   display: flex;
@@ -1240,7 +1240,7 @@ textarea {
   font-size: 10px;
 }
 .ask-ai small {
-  color: var(--muted);
+  color: #8ea36b;
   font-size: 8px;
 }
 .wave-icon {
@@ -1250,14 +1250,14 @@ textarea {
   position: relative;
   display: grid;
   place-items: center;
-  background: var(--accent-bg);
-  color: var(--accent);
+  background: #2c3d18;
+  color: var(--primary);
   flex: none;
 }
 .wave-icon > span {
   position: absolute;
   inset: -2px;
-  border: 1px solid rgba(247, 247, 248, 0.5);
+  border: 1px solid rgba(155, 225, 22, 0.5);
   border-radius: 50%;
   animation: water-wave 2.2s ease-out infinite;
 }

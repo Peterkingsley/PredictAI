@@ -86,7 +86,7 @@ export function AIAnalysisButton({ onPress }: { onPress: () => void }) {
         />
         <View style={styles.content}>
           <View style={styles.icon}>
-            <Ionicons color={colors.accent} name="search-circle-outline" size={18} />
+            <Ionicons color={colors.primary} name="search-circle-outline" size={18} />
           </View>
           <View style={styles.copy}>
             <Text allowFontScaling={false} style={styles.label}>
@@ -111,8 +111,8 @@ const styles = StyleSheet.create({
     minHeight: 46,
     borderRadius: 11,
     borderWidth: 1,
-    borderColor: colors.border,
-    backgroundColor: "#181A1D",
+    borderColor: "#55752A",
+    backgroundColor: "#192312",
     overflow: "hidden",
   },
   wave: {
@@ -122,7 +122,7 @@ const styles = StyleSheet.create({
     width: 190,
     height: 86,
     borderRadius: 48,
-    backgroundColor: "rgba(247,247,248,.16)",
+    backgroundColor: "rgba(155,225,22,.25)",
   },
   secondWave: {
     left: -260,
@@ -142,18 +142,18 @@ const styles = StyleSheet.create({
     width: 29,
     height: 29,
     borderRadius: 9,
-    backgroundColor: "#25272C",
+    backgroundColor: "#2C3D18",
     alignItems: "center",
     justifyContent: "center",
   },
   copy: { flex: 1 },
-  label: { color: colors.text, fontSize: 11, fontWeight: "800", letterSpacing: 0.1 },
+  label: { color: "#D8FF91", fontSize: 11, fontWeight: "800", letterSpacing: 0.1 },
   sublabel: { color: "#8EA36B", fontSize: 8, marginTop: 2 },
   arrow: {
     width: 24,
     height: 24,
     borderRadius: 12,
-    backgroundColor: colors.accent,
+    backgroundColor: colors.primary,
     alignItems: "center",
     justifyContent: "center",
   },
