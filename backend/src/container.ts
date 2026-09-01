@@ -11,6 +11,7 @@ import {
   FixtureMarketProvider,
   type GoogleIdentityVerifier,
 } from "./core/providers.js";
+import { SandboxPaymentProvider } from "./integrations/payments/sandbox-payment-provider.js";
 import { MemoryRepository } from "./repositories/memory/memory.repository.js";
 import { AuthService } from "./services/auth.service.js";
 import { UserService } from "./services/user.service.js";
@@ -19,7 +20,12 @@ import { PredictionService } from "./services/prediction.service.js";
 import { IntelligenceService } from "./services/intelligence.service.js";
 import { NotificationService } from "./services/notification.service.js";
 import { SocialService } from "./services/social.service.js";
-import { WalletService } from "./services/wallet.service.js";
+import { WalletService } from "./services/wallet/wallet.service.js";
+import { WalletAuditService } from "./services/wallet/wallet-audit.service.js";
+import { WalletLedgerService } from "./services/ledger/wallet-ledger.service.js";
+import { DepositService } from "./services/deposits/deposit.service.js";
+import { WithdrawalService } from "./services/withdrawals/withdrawal.service.js";
+import { PaymentWebhookService } from "./services/wallet/payment-webhook.service.js";
 import { AlertService } from "./services/alert.service.js";
 import { SupportService } from "./services/support.service.js";
 import { EventBus } from "./core/events.js";
@@ -49,9 +55,41 @@ export function createContainer(
     aiProvider = new DeterministicAIProvider(),
     marketProvider = new FixtureMarketProvider(),
     execution = new DisabledExecutionProvider(),
-    custody = new DisabledCustodyProvider();
+    custody = new DisabledCustodyProvider(),
+    paymentProvider = new SandboxPaymentProvider();
   const notifications = new NotificationService(repository, push),
+    walletAudit = new WalletAuditService(repository),
+    walletLedger = new WalletLedgerService(
+      repository,
+      config,
+      walletAudit,
+      notifications,
+    ),
     users = new UserService(repository, media),
+    wallet = new WalletService(repository, users, walletLedger, walletAudit),
+    deposits = new DepositService(
+      repository,
+      paymentProvider,
+      walletLedger,
+      wallet,
+      walletAudit,
+      notifications,
+    ),
+    withdrawals = new WithdrawalService(
+      repository,
+      paymentProvider,
+      walletLedger,
+      wallet,
+      walletAudit,
+      notifications,
+    ),
+    paymentWebhooks = new PaymentWebhookService(
+      repository,
+      config,
+      paymentProvider,
+      deposits,
+      withdrawals,
+    ),
     markets = new MarketService(repository),
     intelligence = new IntelligenceService(
       repository,
@@ -64,7 +102,7 @@ export function createContainer(
       repository,
       markets,
       users,
-      config,
+      walletLedger,
       notifications,
     ),
     social = new SocialService(
@@ -74,7 +112,6 @@ export function createContainer(
       intelligence,
       moderation,
     ),
-    wallet = new WalletService(repository, users, custody),
     alerts = new AlertService(repository, markets, notifications),
     support = new SupportService(repository),
     events = new EventBus(),
@@ -96,6 +133,7 @@ export function createContainer(
       marketProvider,
       execution,
       custody,
+      paymentProvider,
     },
     services: {
       auth,
@@ -106,6 +144,11 @@ export function createContainer(
       notifications,
       social,
       wallet,
+      walletLedger,
+      walletAudit,
+      deposits,
+      withdrawals,
+      paymentWebhooks,
       alerts,
       support,
     },

@@ -24,6 +24,7 @@ export const authRoutes: FastifyPluginAsync = async (app) => {
         ip: r.ip,
         userAgent: r.headers["user-agent"],
       });
+      app.container.services.wallet.overview(data.user.id);
       app.container.services.notifications.create(
         data.user.id,
         "security",

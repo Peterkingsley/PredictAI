@@ -2,7 +2,6 @@ import type { Repository } from "../interfaces.js";
 import type {
   AIAnalysis,
   Device,
-  LedgerEntry,
   Market,
   MarketAlert,
   MarketPoint,
@@ -21,6 +20,15 @@ import type {
   User,
   WalletSettings,
 } from "../../models/domain.js";
+import type { WalletLedgerEntry } from "../../models/ledger/index.js";
+import type {
+  DepositIntent,
+  PaymentProviderEvent,
+  WalletAccount,
+  WalletAuditEvent,
+  Withdrawal,
+  WithdrawalQuote,
+} from "../../models/wallet/index.js";
 import {
   marketFixtures,
   marketHistoryFixtures,
@@ -33,6 +41,14 @@ export class MemoryRepository implements Repository {
   privacy = new Map<string, Privacy>();
   walletSettings = new Map<string, WalletSettings>();
   trustedAddresses = new Map<string, TrustedAddress>();
+  walletAccounts = new Map<string, WalletAccount>();
+  walletLedger: WalletLedgerEntry[] = [];
+  deposits = new Map<string, DepositIntent>();
+  withdrawalQuotes = new Map<string, WithdrawalQuote>();
+  withdrawals = new Map<string, Withdrawal>();
+  walletAuditEvents: WalletAuditEvent[] = [];
+  paymentProviderEvents = new Map<string, PaymentProviderEvent>();
+  walletIdempotency = new Map<string, string>();
   markets = new Map<string, Market>(
     marketFixtures.map((m) => [m.id, clone(m)]),
   );
@@ -42,7 +58,6 @@ export class MemoryRepository implements Repository {
   alerts = new Map<string, MarketAlert>();
   quotes = new Map<string, Quote>();
   predictions = new Map<string, Prediction>();
-  ledger: LedgerEntry[] = [];
   idempotency = new Map<string, string>();
   analyses = new Map<string, AIAnalysis>();
   analysisCache = new Map<string, { value: AIAnalysis; expiresAt: number }>();
@@ -70,10 +85,17 @@ export class MemoryRepository implements Repository {
     this.privacy.clear();
     this.walletSettings.clear();
     this.trustedAddresses.clear();
+    this.walletAccounts.clear();
+    this.walletLedger = [];
+    this.deposits.clear();
+    this.withdrawalQuotes.clear();
+    this.withdrawals.clear();
+    this.walletAuditEvents = [];
+    this.paymentProviderEvents.clear();
+    this.walletIdempotency.clear();
     this.alerts.clear();
     this.quotes.clear();
     this.predictions.clear();
-    this.ledger = [];
     this.idempotency.clear();
     this.analyses.clear();
     this.analysisCache.clear();

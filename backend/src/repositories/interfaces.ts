@@ -1,7 +1,6 @@
 import type {
   AIAnalysis,
   Device,
-  LedgerEntry,
   Market,
   MarketAlert,
   MarketPoint,
@@ -20,7 +19,8 @@ import type {
   User,
   WalletSettings,
 } from "../models/domain.js";
-export interface Repository {
+import type { WalletRepository } from "./interfaces/wallet.repository.js";
+export interface Repository extends WalletRepository {
   users: Map<string, User>;
   sessions: Map<string, Session>;
   preferences: Map<string, Preferences>;
@@ -32,7 +32,6 @@ export interface Repository {
   alerts: Map<string, MarketAlert>;
   quotes: Map<string, Quote>;
   predictions: Map<string, import("../models/domain.js").Prediction>;
-  ledger: LedgerEntry[];
   idempotency: Map<string, string>;
   analyses: Map<string, AIAnalysis>;
   analysisCache: Map<string, { value: AIAnalysis; expiresAt: number }>;

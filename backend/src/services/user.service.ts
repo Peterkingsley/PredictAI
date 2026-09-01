@@ -40,7 +40,7 @@ export const defaultWallet = (userId: string): WalletSettings => ({
   requireBiometrics: true,
   withdrawalConfirmation: true,
   autoLock: "5 min",
-  defaultNetwork: "Polygon",
+  defaultNetwork: "polygon",
   withdrawalLimit: "1000",
   feeSpeed: "Standard",
   transactionNotifications: true,

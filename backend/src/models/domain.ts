@@ -1,7 +1,7 @@
 export type UserStatus = "active" | "suspended" | "deleted";
 export type Platform = "android" | "ios" | "web";
 export type Currency = "USD" | "NGN" | "USDC";
-export type Network = "Ethereum" | "Polygon" | "Arbitrum" | "Base";
+export type Network = "ethereum" | "polygon" | "arbitrum" | "base";
 export type MarketStatus = "open" | "closed" | "resolved" | "cancelled";
 export type PostType =
   "insight" | "market" | "position" | "portfolio" | "ai_analysis" | "quote";
@@ -152,19 +152,6 @@ export interface Prediction {
   createdAt: string;
   resolvedAt?: string;
 }
-export interface LedgerEntry {
-  id: string;
-  userId: string;
-  kind:
-    | "starting_balance"
-    | "prediction_debit"
-    | "prediction_payout"
-    | "prediction_refund";
-  amountMinor: bigint;
-  predictionId?: string;
-  createdAt: string;
-}
-
 export interface AIAnalysis {
   id: string;
   marketId: string;

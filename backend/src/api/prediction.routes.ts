@@ -1,8 +1,7 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
-import { pageQuery, parse, schema, userId } from "./shared.js";
+import { parse, schema, userId } from "./shared.js";
 import { AppError } from "../core/errors.js";
-import { page } from "../core/utils.js";
 export const predictionRoutes: FastifyPluginAsync = async (app) => {
   app.post(
     "/predictions/quote",
@@ -103,25 +102,7 @@ export const predictionRoutes: FastifyPluginAsync = async (app) => {
       ),
     },
     async (r) => ({
-      data: app.container.services.predictions.summary(userId(r)),
+      data: app.container.services.wallet.overview(userId(r)),
     }),
-  );
-  app.get(
-    "/wallet/history",
-    {
-      preHandler: app.authenticate,
-      schema: schema(
-        "Wallet",
-        "Get the paper prediction ledger; custody history is disabled.",
-      ),
-    },
-    async (r) => {
-      const query = parse(pageQuery, r.query);
-      return page(
-        app.container.services.predictions.history(userId(r)),
-        query.cursor,
-        query.limit,
-      );
-    },
   );
 };

@@ -1,8 +1,8 @@
 # PredictAI unified backend
 
-Fastify + TypeScript API for the Expo mobile app and React desktop web app. It implements account, market, paper-prediction, PredictAI intelligence, Posts/social, notification, wallet-preference, support, and bootstrap contracts behind injectable repositories and providers.
+Fastify + TypeScript API shared by the Expo mobile app and React desktop web app. It implements authentication, markets, paper predictions, PredictAI intelligence, Posts/social, notifications, profiles, support, and a complete sandbox wallet behind injectable repositories and providers.
 
-This backend intentionally does **not** implement KYC, custody, private-key handling, transaction signing, withdrawal broadcasting, or real-money execution. Predictions use a virtual in-memory ledger. Deposit, withdrawal, wallet-connection, and real execution providers return typed disabled errors until separately configured and reviewed.
+The wallet is deliberately non-custodial and non-production. It never creates private keys, signs or broadcasts blockchain transactions, generates usable deposit addresses, or contacts a live cryptocurrency API. Sandbox deposits and withdrawals exercise the complete product flow against an immutable in-memory ledger. Live deposits, live withdrawals, custody, wallet connections, and real-money prediction funding remain disabled.
 
 ## Run locally
 
@@ -13,14 +13,27 @@ npm install
 npm run dev
 ```
 
-API: `http://localhost:4000/v1`
+- API: `http://localhost:4000/v1`
+- OpenAPI UI: `http://localhost:4000/docs`
+- Health: `http://localhost:4000/health`
+- Readiness: `http://localhost:4000/ready`
 
-OpenAPI UI: `http://localhost:4000/docs`
+Development Google login accepts the deliberately scoped token format `dev:email:subject:name`. Test builds inject a mock verifier. Production requires one or more Google client IDs and a non-development access-token secret.
 
-Health: `http://localhost:4000/health`
-Readiness: `http://localhost:4000/ready`
+## Sandbox wallet
 
-Development Google login accepts a deliberately scoped token shaped as `dev:email:subject:name`. Test builds inject a mock verifier. Production requires one or more Google client IDs plus a non-development access-token secret.
+Every authenticated user gets one internal wallet account. The configured `PAPER_STARTING_BALANCE` becomes a one-time `sandbox_credit` ledger entry. Balances are calculated from immutable integer-minor-unit entries; they are not independently stored or changed with floating-point arithmetic.
+
+Supported assets are `USDC` and `USDT`. Canonical network IDs are `ethereum`, `polygon`, `arbitrum`, and `base`. Generated deposit addresses begin with `sandbox_` and cannot be mistaken for valid EVM addresses. Generated transaction IDs begin with `sandbox_tx_`.
+
+`PAYMENT_PROVIDER=sandbox` is the only enabled provider. `PAYMENT_API_KEY`, `PAYMENT_IPN_SECRET`, and `PAYMENT_API_BASE_URL` are reserved for a later approved provider and are not needed in sandbox mode.
+
+Development-only simulators are registered only when `NODE_ENV` is not `production`:
+
+- `POST /v1/dev/wallet/deposits/:id/simulate`
+- `POST /v1/dev/wallet/withdrawals/:id/complete`
+
+The public configuration endpoints expose `wallet.mode: "sandbox"`, `liveDeposits: false`, and `liveWithdrawals: false`. Clients must show a sandbox label and must never describe these transactions as on-chain.
 
 ## Commands
 
@@ -33,14 +46,17 @@ npm start
 
 ## Architecture
 
-- `src/api`: versioned Fastify route modules, validation, and response contracts.
-- `src/services`: domain rules and privacy-aware serialization.
-- `src/repositories`: persistence interfaces and fixture-seeded in-memory adapter.
-- `src/core`: typed configuration, security, provider boundaries, events, errors, and money utilities.
-- `src/fixtures`: normalized development market provider data.
-- `src/workers`: scheduler abstraction and development workers.
-- `tests`: no-network Fastify injection and client-contract tests.
+- `src/api`: versioned Fastify routes, validation, authentication, and rate limits.
+- `src/services/wallet`: overview, preferences, trusted addresses, audit, and webhook orchestration.
+- `src/services/ledger`: immutable ledger and calculated balances.
+- `src/services/deposits`: idempotent deposit-intent lifecycle.
+- `src/services/withdrawals`: quote, validation, idempotent confirmation, and lifecycle.
+- `src/integrations/payments`: provider contract and the only enabled implementation, `SandboxPaymentProvider`.
+- `src/models/wallet` and `src/models/ledger`: canonical wallet domain types.
+- `src/repositories`: persistence boundaries and fixture-seeded in-memory adapter.
+- `src/core`: configuration, security, events, errors, and money utilities.
+- `tests`: no-network Fastify injection and service-contract tests.
 
-The repository interface is the database-ready boundary. A production adapter can replace `MemoryRepository` without moving rules into route handlers. The in-memory implementation is intentionally non-durable and resets on restart.
+The repository and payment-provider interfaces are the replacement boundaries for production infrastructure. `MemoryRepository` is intentionally non-durable and resets on restart.
 
-See [CLIENT_INTEGRATION.md](./CLIENT_INTEGRATION.md) for the frontend service map and required prototype cleanup.
+See [CLIENT_INTEGRATION.md](./CLIENT_INTEGRATION.md) for the mobile and desktop replacement map and the complete wallet request sequence.

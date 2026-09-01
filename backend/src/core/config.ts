@@ -30,6 +30,10 @@ const schema = z.object({
     .regex(/^\d+(\.\d{1,2})?$/)
     .default("1000.00"),
   AI_CACHE_TTL_SECONDS: z.coerce.number().positive().default(300),
+  PAYMENT_PROVIDER: z.literal("sandbox").default("sandbox"),
+  PAYMENT_API_KEY: z.string().default(""),
+  PAYMENT_IPN_SECRET: z.string().default(""),
+  PAYMENT_API_BASE_URL: z.string().default(""),
 });
 export type Config = z.infer<typeof schema> & { corsOrigins: string[] };
 export function loadConfig(source: NodeJS.ProcessEnv = process.env): Config {

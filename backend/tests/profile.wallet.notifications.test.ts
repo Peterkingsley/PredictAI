@@ -57,19 +57,25 @@ describe("profile, wallet, notifications, support, and client contracts", () => 
     });
     expect((await app.inject({ url })).statusCode).toBe(404);
   });
-  it("matches mobile and desktop wallet option unions while disabling custody", async () => {
+  it("exposes canonical sandbox wallet assets and networks", async () => {
     app = await testApp();
     const auth = await login(app),
       headers = bearer(auth.accessToken);
     const config = (await app.inject({ url: "/v1/app-config" })).json().data;
     expect(config.currencies).toEqual(["USD", "NGN", "USDC"]);
     expect(config.networks).toEqual([
-      "Ethereum",
-      "Polygon",
-      "Arbitrum",
-      "Base",
+      "ethereum",
+      "polygon",
+      "arbitrum",
+      "base",
     ]);
     expect(config.features.realMoneyExecution).toBe(false);
+    expect(config.wallet).toEqual({
+      enabled: true,
+      mode: "sandbox",
+      liveDeposits: false,
+      liveWithdrawals: false,
+    });
     const address = await app.inject({
       method: "POST",
       url: "/v1/wallet/trusted-addresses",
@@ -77,18 +83,18 @@ describe("profile, wallet, notifications, support, and client contracts", () => 
       payload: {
         label: "Cold",
         address: "0x1111111111111111111111111111111111111111",
-        network: "Base",
+        network: "base",
       },
     });
-    expect(address.statusCode).toBe(200);
+    expect(address.statusCode).toBe(201);
     const withdrawal = await app.inject({
       method: "POST",
       url: "/v1/wallet/withdrawals",
       headers,
       payload: {},
     });
-    expect(withdrawal.statusCode).toBe(501);
-    expect(withdrawal.json().error.code).toBe("PROVIDER_DISABLED");
+    expect(withdrawal.statusCode).toBe(400);
+    expect(withdrawal.json().error.code).toBe("IDEMPOTENCY_KEY_REQUIRED");
   });
   it("registers devices, reads notifications, and opens support tickets", async () => {
     app = await testApp();
@@ -141,8 +147,24 @@ describe("profile, wallet, notifications, support, and client contracts", () => 
     expect(res.json().data).toMatchObject({
       preferences: { defaultCurrency: "USD" },
       privacy: { publicProfile: true },
-      walletSettings: { defaultNetwork: "Polygon" },
-      wallet: { paperBalance: "1000.00" },
+      walletSettings: { defaultNetwork: "polygon" },
+      wallet: {
+        mode: "sandbox",
+        balances: [
+          {
+            asset: "USDC",
+            available: "1000.00",
+            locked: "0.00",
+            total: "1000.00",
+          },
+          {
+            asset: "USDT",
+            available: "0.00",
+            locked: "0.00",
+            total: "0.00",
+          },
+        ],
+      },
       features: { custody: false, realMoneyExecution: false },
     });
   });

@@ -6,7 +6,7 @@ import type {
   VerifiedGoogleIdentity,
 } from "../src/core/providers.js";
 import type { Platform } from "../src/models/domain.js";
-class FakeGoogle implements GoogleIdentityVerifier {
+export class FakeGoogle implements GoogleIdentityVerifier {
   async verify(
     token: string,
     _platform: Platform,

@@ -1,37 +1,24 @@
-import type { Config } from "../core/config.js";
 import type { Repository } from "../repositories/interfaces.js";
 import { AppError, notFound } from "../core/errors.js";
 import { fromMinor, id, now, toMinor } from "../core/utils.js";
 import type { MarketService } from "./market.service.js";
 import type { UserService } from "./user.service.js";
 import type { NotificationService } from "./notification.service.js";
+import type { WalletLedgerService } from "./ledger/wallet-ledger.service.js";
 export class PredictionService {
   constructor(
     private repo: Repository,
     private markets: MarketService,
     private users: UserService,
-    private config: Config,
+    private walletLedger: WalletLedgerService,
     private notify?: NotificationService,
   ) {}
   balanceMinor(userId: string) {
-    return this.repo.ledger
-      .filter((e) => e.userId === userId)
-      .reduce((s, e) => s + e.amountMinor, 0n);
+    return this.walletLedger.available(userId, "USDC");
   }
   ensureBalance(userId: string) {
-    if (
-      !this.repo.ledger.some(
-        (e) => e.userId === userId && e.kind === "starting_balance",
-      )
-    )
-      this.repo.ledger.push({
-        id: id("ledger"),
-        userId,
-        kind: "starting_balance",
-        amountMinor: toMinor(this.config.PAPER_STARTING_BALANCE),
-        createdAt: now(),
-      });
-    return this.balanceMinor(userId);
+    this.walletLedger.ensureWallet(userId);
+    return this.walletLedger.available(userId, "USDC");
   }
   quote(
     userId: string,
@@ -75,10 +62,8 @@ export class PredictionService {
     const lock = new Promise<void>((r) => {
       release = r;
     });
-    this.repo.locks.set(
-      userId,
-      previousLock.then(() => lock),
-    );
+    const queued = previousLock.then(() => lock);
+    this.repo.locks.set(userId, queued);
     await previousLock;
     try {
       const q = this.repo.quotes.get(quoteId);
@@ -134,14 +119,7 @@ export class PredictionService {
         createdAt: now(),
       };
       this.repo.predictions.set(prediction.id, prediction);
-      this.repo.ledger.push({
-        id: id("ledger"),
-        userId,
-        kind: "prediction_debit",
-        amountMinor: -q.amountMinor,
-        predictionId: prediction.id,
-        createdAt: now(),
-      });
+      this.walletLedger.stakePrediction(userId, prediction.id, q.amountMinor);
       this.repo.positions.set(prediction.id, {
         id: prediction.id,
         userId,
@@ -164,7 +142,8 @@ export class PredictionService {
       return this.serialize(prediction);
     } finally {
       release();
-      if (this.repo.locks.get(userId) === lock) this.repo.locks.delete(userId);
+      if (this.repo.locks.get(userId) === queued)
+        this.repo.locks.delete(userId);
     }
   }
   list(userId: string, status?: string) {
@@ -191,14 +170,16 @@ export class PredictionService {
       p.resolvedAt = now();
       if (p.status === "won") {
         p.payoutMinor = p.potentialWinMinor;
-        this.repo.ledger.push({
-          id: id("ledger"),
-          userId: p.userId,
-          kind: "prediction_payout",
-          amountMinor: p.payoutMinor,
-          predictionId: p.id,
-          createdAt: now(),
-        });
+        this.walletLedger.settlePrediction(p.userId, p.id, p.payoutMinor);
+      } else {
+        this.notify?.create(
+          p.userId,
+          "wallet",
+          "Prediction settled",
+          "Your sandbox prediction was settled without a payout.",
+          { predictionId: p.id },
+          `wallet:prediction:settled:${p.id}`,
+        );
       }
       const position = this.repo.positions.get(p.id);
       if (position) {
@@ -216,13 +197,26 @@ export class PredictionService {
       );
     }
   }
+  refund(predictionId: string) {
+    const prediction = this.repo.predictions.get(predictionId);
+    if (!prediction) throw notFound("Prediction");
+    if (prediction.status !== "open") return this.serialize(prediction);
+    prediction.status = "refunded";
+    prediction.payoutMinor = prediction.amountMinor;
+    prediction.resolvedAt = now();
+    this.walletLedger.refundPrediction(
+      prediction.userId,
+      prediction.id,
+      prediction.amountMinor,
+    );
+    return this.serialize(prediction);
+  }
   history(userId: string) {
-    this.ensureBalance(userId);
-    return this.repo.ledger
-      .filter((e) => e.userId === userId)
-      .map((e) => ({
-        ...e,
-        amount: fromMinor(e.amountMinor),
+    return this.repo.walletLedger
+      .filter((entry) => entry.userId === userId)
+      .map((entry) => ({
+        ...entry,
+        amount: fromMinor(entry.amountMinor),
         amountMinor: undefined,
       }));
   }

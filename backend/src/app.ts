@@ -18,6 +18,7 @@ import { predictionRoutes } from "./api/prediction.routes.js";
 import { intelligenceRoutes } from "./api/intelligence.routes.js";
 import { socialRoutes } from "./api/social.routes.js";
 import { miscRoutes } from "./api/misc.routes.js";
+import { walletRoutes } from "./api/wallet.routes.js";
 export interface BuildOptions {
   config?: Config;
   overrides?: ContainerOverrides;
@@ -188,6 +189,7 @@ export async function buildApp(options: BuildOptions = {}) {
       await api.register(intelligenceRoutes);
       await api.register(socialRoutes);
       await api.register(miscRoutes);
+      await api.register(walletRoutes);
     },
     { prefix: "/v1" },
   );

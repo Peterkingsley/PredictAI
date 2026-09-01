@@ -368,12 +368,22 @@ export class SocialService {
                 ? (wins / settled.length) * 100
                 : 0
               : metric === "performance"
-                ? this.repo.ledger
+                ? this.repo.walletLedger
                     .filter(
-                      (e) =>
-                        e.userId === u.id && e.kind === "prediction_payout",
+                      (entry) =>
+                        entry.userId === u.id &&
+                        entry.referenceType === "prediction",
                     )
-                    .reduce((s, e) => s + Number(e.amountMinor), 0) / 100
+                    .reduce(
+                      (total, entry) =>
+                        total +
+                        Number(
+                          entry.direction === "credit"
+                            ? entry.amountMinor
+                            : -entry.amountMinor,
+                        ),
+                      0,
+                    ) / 100
                 : metric === "consistency"
                   ? settled.length
                   : 0,

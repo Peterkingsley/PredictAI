@@ -72,9 +72,13 @@ describe("markets, alerts, and paper predictions", () => {
     expect(
       (await app.inject({ url: "/v1/positions", headers })).json().data,
     ).toHaveLength(1);
+    const wallet = (
+      await app.inject({ url: "/v1/wallet/summary", headers })
+    ).json().data;
     expect(
-      (await app.inject({ url: "/v1/wallet/summary", headers })).json().data
-        .paperBalance,
+      wallet.balances.find(
+        (balance: { asset: string }) => balance.asset === "USDC",
+      ).available,
     ).toBe("990.00");
   });
   it("requires an idempotency key and enforces daily limits", async () => {

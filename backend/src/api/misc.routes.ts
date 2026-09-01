@@ -1,23 +1,6 @@
 import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { marketJson, pageQuery, parse, schema, userId } from "./shared.js";
-const settings = z
-  .object({
-    requireBiometrics: z.boolean(),
-    withdrawalConfirmation: z.boolean(),
-    autoLock: z.enum(["1 min", "5 min", "15 min", "Never"]),
-    defaultNetwork: z.enum(["Ethereum", "Polygon", "Arbitrum", "Base"]),
-    withdrawalLimit: z.string(),
-    feeSpeed: z.enum(["Standard", "Fast"]),
-    transactionNotifications: z.boolean(),
-    currency: z.enum(["USD", "NGN", "USDC"]),
-    hideBalances: z.boolean(),
-    assetSort: z.enum(["Balance", "Name", "Performance"]),
-    compactView: z.boolean(),
-    walletMode: z.enum(["Prediction", "Trading"]),
-    supportedAssets: z.object({ USDC: z.boolean(), USDT: z.boolean() }),
-  })
-  .partial();
 export const miscRoutes: FastifyPluginAsync = async (app) => {
   app.get(
     "/media/:id",
@@ -41,120 +24,6 @@ export const miscRoutes: FastifyPluginAsync = async (app) => {
         });
       return reply.type(item.mime).send(item.bytes);
     },
-  );
-  app.get(
-    "/wallet/settings",
-    {
-      preHandler: app.authenticate,
-      schema: schema(
-        "Wallet",
-        "Get wallet display and local-security preferences.",
-      ),
-    },
-    async (r) => ({ data: app.container.services.wallet.settings(userId(r)) }),
-  );
-  app.patch(
-    "/wallet/settings",
-    {
-      preHandler: app.authenticate,
-      schema: schema(
-        "Wallet",
-        "Patch wallet preferences; no custody capability is granted.",
-      ),
-    },
-    async (r) => {
-      const current = app.container.services.wallet.settings(userId(r)),
-        body = parse(settings, r.body);
-      Object.assign(current, body, {
-        supportedAssets: {
-          ...current.supportedAssets,
-          ...body.supportedAssets,
-        },
-        connectedWallet: null,
-      });
-      return { data: current };
-    },
-  );
-  app.get(
-    "/wallet/trusted-addresses",
-    {
-      preHandler: app.authenticate,
-      schema: schema(
-        "Wallet",
-        "List owned trusted withdrawal-address records.",
-      ),
-    },
-    async (r) => ({ data: app.container.services.wallet.trusted(userId(r)) }),
-  );
-  app.post(
-    "/wallet/trusted-addresses",
-    {
-      preHandler: app.authenticate,
-      schema: schema(
-        "Wallet",
-        "Validate and store a trusted EVM address without private keys.",
-      ),
-    },
-    async (r) => ({
-      data: app.container.services.wallet.addTrusted(
-        userId(r),
-        parse(
-          z.object({
-            label: z.string().min(1).max(80),
-            address: z.string(),
-            network: z.enum(["Ethereum", "Polygon", "Arbitrum", "Base"]),
-          }),
-          r.body,
-        ),
-      ),
-    }),
-  );
-  app.delete(
-    "/wallet/trusted-addresses/:id",
-    {
-      preHandler: app.authenticate,
-      schema: schema("Wallet", "Delete an owned trusted address."),
-    },
-    async (r) => {
-      app.container.services.wallet.deleteTrusted(
-        userId(r),
-        parse(z.object({ id: z.string() }), r.params).id,
-      );
-      return { data: { deleted: true } };
-    },
-  );
-  app.post(
-    "/wallet/deposit-address",
-    {
-      preHandler: app.authenticate,
-      schema: schema(
-        "Wallet",
-        "Return an explicit disabled-provider error until custody is configured.",
-      ),
-    },
-    async () => app.container.services.wallet.deposit(),
-  );
-  app.post(
-    "/wallet/withdrawals",
-    {
-      preHandler: app.authenticate,
-      schema: schema(
-        "Wallet",
-        "Return an explicit disabled-provider error; no transaction is signed or broadcast.",
-      ),
-    },
-    async () => app.container.services.wallet.withdraw(),
-  );
-  app.post(
-    "/wallet/connections",
-    {
-      preHandler: app.authenticate,
-      schema: schema(
-        "Wallet",
-        "Return an explicit disabled-provider error until wallet connection is configured.",
-      ),
-    },
-    async () => app.container.services.wallet.connect(),
   );
   app.get(
     "/notifications",
@@ -410,8 +279,20 @@ export const miscRoutes: FastifyPluginAsync = async (app) => {
           externalWalletConnections: false,
           aiAnalysis: true,
           social: true,
+          wallet: {
+            enabled: true,
+            mode: "sandbox",
+            liveDeposits: false,
+            liveWithdrawals: false,
+          },
         },
-        networks: ["Ethereum", "Polygon", "Arbitrum", "Base"],
+        wallet: {
+          enabled: true,
+          mode: "sandbox",
+          liveDeposits: false,
+          liveWithdrawals: false,
+        },
+        networks: ["ethereum", "polygon", "arbitrum", "base"],
         currencies: ["USD", "NGN", "USDC"],
         languages: ["en", "fr"],
         legal: {
@@ -439,8 +320,20 @@ export const miscRoutes: FastifyPluginAsync = async (app) => {
           externalWalletConnections: false,
           aiAnalysis: true,
           social: true,
+          wallet: {
+            enabled: true,
+            mode: "sandbox",
+            liveDeposits: false,
+            liveWithdrawals: false,
+          },
         },
-        networks: ["Ethereum", "Polygon", "Arbitrum", "Base"],
+        wallet: {
+          enabled: true,
+          mode: "sandbox",
+          liveDeposits: false,
+          liveWithdrawals: false,
+        },
+        networks: ["ethereum", "polygon", "arbitrum", "base"],
         currencies: ["USD", "NGN", "USDC"],
         languages: ["en", "fr"],
         legal: {
@@ -491,12 +384,18 @@ export const miscRoutes: FastifyPluginAsync = async (app) => {
           privacy: app.container.services.users.privacy(uid),
           walletSettings: app.container.services.wallet.settings(uid),
           unreadNotifications: app.container.services.notifications.unread(uid),
-          wallet: app.container.services.predictions.summary(uid),
+          wallet: app.container.services.wallet.overview(uid),
           features: {
             paperPredictions: true,
             realMoneyExecution: false,
             custody: false,
             externalWalletConnections: false,
+            wallet: {
+              enabled: true,
+              mode: "sandbox",
+              liveDeposits: false,
+              liveWithdrawals: false,
+            },
           },
         },
       };
